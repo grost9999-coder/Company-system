@@ -7,126 +7,96 @@
     <!-- 引入 Tailwind CSS 和 Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif; }
+        body { font-family: 'Noto Sans TC', sans-serif; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .tab-content.active { display: block; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-indigo-50/20 to-blue-50/30 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- 頂部導航欄 (質感深藍漸層) -->
-    <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-blue-700 text-white shadow-lg sticky top-0 z-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-md shadow-inner text-2xl">
-                    💎
-                </div>
-                <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">個人智慧記帳與資產管理</h1>
-                    <p class="text-xs text-indigo-200">精準掌握收支、保險代墊與財務趨勢</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2.5">
-                <button onclick="exportData()" class="bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-md transition shadow-sm flex items-center gap-1.5">
-                    📥 備份資料
-                </button>
-                <label class="bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-md transition cursor-pointer shadow-sm flex items-center gap-1.5">
+    <!-- 頂部導航欄 -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <span>💰</span> 個人智慧記帳本系統
+            </h1>
+            <div class="mt-3 sm:mt-0 flex gap-2">
+                <button onclick="exportData()" class="bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded text-sm font-medium transition flex items-center gap-1">📥 備份資料</button>
+                <label class="bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded text-sm font-medium transition cursor-pointer flex items-center gap-1">
                     📤 還原資料 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
                 </label>
             </div>
         </div>
     </header>
 
-    <!-- 分頁導航列 -->
-    <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-xs sticky top-[73px] z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8">
-            <button onclick="switchTab('tab-ledger', this)" class="tab-btn py-4 px-3 border-b-2 border-indigo-600 text-indigo-600 font-bold text-sm transition flex items-center gap-2">
-                📝 收支記帳本
-            </button>
-            <button onclick="switchTab('tab-insurance', this)" class="tab-btn py-4 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition flex items-center gap-2">
-                🛡️ 保險代墊管理
-            </button>
-            <button onclick="switchTab('tab-analytics', this)" class="tab-btn py-4 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition flex items-center gap-2">
-                📊 收支趨勢分析
-            </button>
+    <!-- 分頁標籤列 -->
+    <nav class="bg-white border-b shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 flex space-x-8">
+            <button onclick="switchTab('tab-ledger', this)" class="tab-btn py-4 px-2 border-b-2 border-indigo-600 text-indigo-600 font-bold text-sm transition">📝 收支記帳本</button>
+            <button onclick="switchTab('tab-insurance', this)" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition">🛡️ 保險代墊管理</button>
+            <button onclick="switchTab('tab-analytics', this)" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition">📊 收支趨勢分析</button>
         </div>
     </nav>
 
     <!-- 主體內容區 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
 
         <!-- ================= 分頁一：收支記帳本 ================= -->
         <div id="tab-ledger" class="tab-content active space-y-6">
-            <!-- 新增表單卡片 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">➕</span> 
-                        新增收支記錄
-                    </h2>
-                    <span class="text-xs text-slate-400 font-medium">* 必填欄位</span>
-                </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><span>➕</span> 新增收支記錄</h2>
                 <form id="ledgerForm" onsubmit="addLedgerItem(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">日期</label>
-                        <input type="date" id="lDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">日期</label>
+                        <input type="date" id="lDate" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">類型</label>
-                        <select id="lType" onchange="updateCategoryOptions()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">類型</label>
+                        <select id="lType" onchange="updateCategoryOptions()" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                             <option value="收入">收入</option>
                             <option value="支出">支出</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">類別</label>
-                        <select id="lCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">類別</label>
+                        <select id="lCategory" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                             <!-- 動態填入 -->
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">金額 (TWD)</label>
-                        <input type="number" id="lAmount" min="1" required placeholder="例如：1000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">金額 (TWD)</label>
+                        <input type="number" id="lAmount" min="1" required placeholder="請輸入金額" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">備註說明</label>
-                        <input type="text" id="lNote" placeholder="例如：本薪 / 晚餐" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">備註說明</label>
+                        <input type="text" id="lNote" placeholder="例如：本薪 / 晚餐" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div class="flex items-end">
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <span>✨</span> 儲存記錄
-                        </button>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition shadow-sm">新增記錄</button>
                     </div>
                 </form>
             </div>
 
-            <!-- 列表與篩選卡片 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">📋</span>
-                        收支明細列表
-                    </h2>
-                    <div class="w-full sm:w-72">
-                        <input type="text" id="ledgerSearch" placeholder="🔍 搜尋備註、類別或日期..." oninput="renderLedger()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
+            <!-- 列表與篩選 -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2"><span>📋</span> 收支明細列表</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <input type="text" id="ledgerSearch" placeholder="搜尋備註或類別..." oninput="renderLedger()" class="border rounded-lg px-3 py-1.5 text-sm w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr class="bg-slate-100/80 text-slate-600 uppercase text-xs tracking-wider">
-                                <th class="p-3.5 rounded-l-xl font-semibold">日期</th>
-                                <th class="p-3.5 font-semibold">類型</th>
-                                <th class="p-3.5 font-semibold">類別</th>
-                                <th class="p-3.5 text-right font-semibold">金額</th>
-                                <th class="p-3.5 font-semibold">備註說明</th>
-                                <th class="p-3.5 text-center rounded-r-xl font-semibold">操作</th>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
+                                <th class="p-3 rounded-l-lg">日期</th>
+                                <th class="p-3">類型</th>
+                                <th class="p-3">類別</th>
+                                <th class="p-3 text-right">金額</th>
+                                <th class="p-3">備註說明</th>
+                                <th class="p-3 text-center rounded-r-lg">操作</th>
                             </tr>
                         </thead>
                         <tbody id="ledgerTableBody" class="divide-y divide-slate-100">
@@ -139,63 +109,52 @@
 
         <!-- ================= 分頁二：保險代墊管理 ================= -->
         <div id="tab-insurance" class="tab-content space-y-6">
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">➕</span>
-                        新增保險代墊記錄
-                    </h2>
-                    <span class="text-xs text-slate-400 font-medium">代客墊付管理</span>
-                </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><span>➕</span> 新增保險代墊記錄</h2>
                 <form id="insuranceForm" onsubmit="addInsuranceItem(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">保戶姓名</label>
-                        <input type="text" id="iName" required placeholder="例如：王小明" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">保戶/被保險人</label>
+                        <input type="text" id="iName" required placeholder="例如：王小明" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">保單名稱/備註</label>
-                        <input type="text" id="iPolicy" required placeholder="例如：終身壽險年繳" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">保單名稱/備註</label>
+                        <input type="text" id="iPolicy" required placeholder="例如：終身壽險年繳" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">代墊金額 (TWD)</label>
-                        <input type="number" id="iAmount" min="1" required placeholder="金額" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">代墊金額 (TWD)</label>
+                        <input type="number" id="iAmount" min="1" required placeholder="金額" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">支出日期</label>
-                        <input type="date" id="iPayDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">支出日期</label>
+                        <input type="date" id="iPayDate" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">回收日期 (未回收留空)</label>
-                        <input type="date" id="iReturnDate" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">回收日期 (未回收留空)</label>
+                        <input type="date" id="iReturnDate" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div class="flex items-end">
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <span>🛡️</span> 新增代墊
-                        </button>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition shadow-sm">新增代墊</button>
                     </div>
                 </form>
             </div>
 
             <!-- 代墊列表 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">🛡️</span>
-                        保險代墊與回收明細
-                    </h2>
-                    <div id="insuranceSummary" class="text-sm font-medium bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl"></div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2"><span>🛡️</span> 保險代墊與回收明細</h2>
+                    <div id="insuranceSummary" class="text-sm font-medium text-slate-600"></div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr class="bg-slate-100/80 text-slate-600 uppercase text-xs tracking-wider">
-                                <th class="p-3.5 rounded-l-xl font-semibold">保戶姓名</th>
-                                <th class="p-3.5 font-semibold">保單備註</th>
-                                <th class="p-3.5 text-right font-semibold">代墊金額</th>
-                                <th class="p-3.5 font-semibold">支出日期</th>
-                                <th class="p-3.5 font-semibold">回收日期</th>
-                                <th class="p-3.5 text-center font-semibold">狀態</th>
-                                <th class="p-3.5 text-center rounded-r-xl font-semibold">操作</th>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
+                                <th class="p-3 rounded-l-lg">保戶姓名</th>
+                                <th class="p-3">保單備註</th>
+                                <th class="p-3 text-right">代墊金額</th>
+                                <th class="p-3">支出日期</th>
+                                <th class="p-3">回收日期</th>
+                                <th class="p-3 text-center">狀態</th>
+                                <th class="p-3 text-center rounded-r-lg">操作</th>
                             </tr>
                         </thead>
                         <tbody id="insuranceTableBody" class="divide-y divide-slate-100">
@@ -210,44 +169,40 @@
         <div id="tab-analytics" class="tab-content space-y-6">
             <!-- 數據總覽卡片 -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">總收入</p>
+                        <p class="text-xs font-medium text-slate-400 uppercase">總收入</p>
                         <h3 id="statTotalIncome" class="text-2xl font-bold text-emerald-600 mt-1">NT$ 0</h3>
                     </div>
-                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">📈</div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-full text-xl">📈</div>
                 </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">總支出</p>
+                        <p class="text-xs font-medium text-slate-400 uppercase">總支出</p>
                         <h3 id="statTotalExpense" class="text-2xl font-bold text-rose-600 mt-1">NT$ 0</h3>
                     </div>
-                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">📉</div>
+                    <div class="p-3 bg-rose-50 text-rose-600 rounded-full text-xl">📉</div>
                 </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">淨結餘</p>
+                        <p class="text-xs font-medium text-slate-400 uppercase">淨結餘</p>
                         <h3 id="statNetBalance" class="text-2xl font-bold text-indigo-600 mt-1">NT$ 0</h3>
                     </div>
-                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">💎</div>
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full text-xl">💎</div>
                 </div>
             </div>
 
             <!-- 圖表區塊 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                    <h3 class="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📊</span> 支出類別佔比分析
-                    </h3>
-                    <div class="relative h-80 flex justify-center items-center">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="text-base font-bold text-slate-700 mb-4">📊 支出類別佔比分析</h3>
+                    <div class="relative h-72 flex justify-center items-center">
                         <canvas id="expenseChart"></canvas>
                     </div>
                 </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                    <h3 class="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📅</span> 每月收支趨勢對比
-                    </h3>
-                    <div class="relative h-80 flex justify-center items-center">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="text-base font-bold text-slate-700 mb-4">📅 每月收支趨勢對比</h3>
+                    <div class="relative h-72 flex justify-center items-center">
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
@@ -257,8 +212,8 @@
     </main>
 
     <!-- 頁腳 -->
-    <footer class="bg-white/60 backdrop-blur-md border-t border-slate-200/80 py-6 text-center text-xs text-slate-400 mt-auto">
-        個人智慧記帳本與資產管理系統 &copy; 2026 &bull; 資料自動安全儲存於瀏覽器 LocalStorage
+    <footer class="bg-white border-t py-4 text-center text-xs text-slate-400 mt-auto">
+        個人智慧記帳本與資產管理系統 &copy; 2026 (資料自動儲存於瀏覽器 LocalStorage)
     </footer>
 
     <!-- JavaScript 邏輯 -->
@@ -370,22 +325,22 @@
             filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400 font-medium">沒有找到相關記錄</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">沒有找到相關記錄</td></tr>`;
                 return;
             }
 
             filtered.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition duration-150";
+                tr.className = "hover:bg-slate-50 transition";
                 const isIncome = item.type === '收入';
                 tr.innerHTML = `
-                    <td class="p-3.5 text-slate-600 font-medium">${item.date}</td>
-                    <td class="p-3.5"><span class="px-3 py-1 rounded-full text-xs font-semibold ${isIncome ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}">${item.type}</span></td>
-                    <td class="p-3.5 font-semibold text-slate-700">${item.category}</td>
-                    <td class="p-3.5 text-right font-bold ${isIncome ? 'text-emerald-600' : 'text-slate-800'}">${isIncome ? '+' : '-'}$ ${item.amount.toLocaleString()}</td>
-                    <td class="p-3.5 text-slate-500">${item.note}</td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="deleteLedgerItem(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition">🗑️ 刪除</button>
+                    <td class="p-3 text-slate-600">${item.date}</td>
+                    <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${item.type}</span></td>
+                    <td class="p-3 font-medium text-slate-700">${item.category}</td>
+                    <td class="p-3 text-right font-bold ${isIncome ? 'text-emerald-600' : 'text-slate-700'}">${isIncome ? '+' : '-'}$ ${item.amount.toLocaleString()}</td>
+                    <td class="p-3 text-slate-500">${item.note}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteLedgerItem(${item.id})" class="text-rose-400 hover:text-rose-600 p-1 text-xs transition">🗑️ 刪除</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -444,7 +399,7 @@
             insuranceData.sort((a, b) => new Date(b.payDate) - new Date(a.payDate));
 
             if (insuranceData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400 font-medium">目前沒有保險代墊記錄</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">目前沒有保險代墊記錄</td></tr>`;
                 summaryDiv.innerHTML = `未回收總額: NT$ 0`;
                 return;
             }
@@ -458,26 +413,26 @@
                 }
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition duration-150";
+                tr.className = "hover:bg-slate-50 transition";
                 tr.innerHTML = `
-                    <td class="p-3.5 font-bold text-slate-800">${item.name}</td>
-                    <td class="p-3.5 text-slate-600 font-medium">${item.policy}</td>
-                    <td class="p-3.5 text-right font-bold text-slate-800">NT$ ${item.amount.toLocaleString()}</td>
-                    <td class="p-3.5 text-slate-500">${item.payDate}</td>
-                    <td class="p-3.5 text-slate-500">${item.returnDate ? item.returnDate : '<span class="text-amber-600 font-medium italic">尚未回收</span>'}</td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="toggleInsuranceStatus(${item.id})" class="px-3 py-1 rounded-full text-xs font-bold transition shadow-xs ${isReturned ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'}">
-                            ${isReturned ? '✅ 已回收' : '⏳ 待回收 (點擊切換)'}
+                    <td class="p-3 font-medium text-slate-700">${item.name}</td>
+                    <td class="p-3 text-slate-600">${item.policy}</td>
+                    <td class="p-3 text-right font-bold text-slate-700">NT$ ${item.amount.toLocaleString()}</td>
+                    <td class="p-3 text-slate-500">${item.payDate}</td>
+                    <td class="p-3 text-slate-500">${item.returnDate ? item.returnDate : '<span class="text-amber-500 italic">尚未回收</span>'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="toggleInsuranceStatus(${item.id})" class="px-2.5 py-1 rounded-full text-xs font-semibold transition ${isReturned ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}">
+                            ${isReturned ? '✅ 已回收' : '⏳ 待回收 (點擊更改)'}
                         </button>
                     </td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="deleteInsuranceItem(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition">🗑️ 刪除</button>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteInsuranceItem(${item.id})" class="text-rose-400 hover:text-rose-600 p-1 text-xs transition">🗑️ 刪除</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            summaryDiv.innerHTML = `未回收總額: <span class="text-rose-600 font-bold">NT$ ${totalPending.toLocaleString()}</span> &bull; 已回收總額: <span class="text-emerald-600 font-bold">NT$ ${totalCollected.toLocaleString()}</span>`;
+            summaryDiv.innerHTML = `未回收總額: <span class="text-rose-600 font-bold">NT$ ${totalPending.toLocaleString()}</span> | 已回收總額: <span class="text-emerald-600 font-bold">NT$ ${totalCollected.toLocaleString()}</span>`;
         }
 
         // ================= 收支趨勢分析與圖表 =================
@@ -526,17 +481,13 @@
                     labels: filteredExpenseLabels.length > 0 ? filteredExpenseLabels : ['尚無支出數據'],
                     datasets: [{
                         data: filteredExpenseData.length > 0 ? filteredExpenseData : [1],
-                        backgroundColor: ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e', '#64748b', '#94a3b8'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
+                        backgroundColor: ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e', '#64748b', '#94a3b8']
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, family: 'Noto Sans TC' } } } 
-                    }
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
                 }
             });
 
@@ -568,13 +519,13 @@
                             label: '收入',
                             data: incomeTrend.length > 0 ? incomeTrend : [0],
                             backgroundColor: '#10b981',
-                            borderRadius: 6
+                            borderRadius: 4
                         },
                         {
                             label: '支出',
                             data: expenseTrend.length > 0 ? expenseTrend : [0],
                             backgroundColor: '#f43f5e',
-                            borderRadius: 6
+                            borderRadius: 4
                         }
                     ]
                 },
@@ -585,9 +536,7 @@
                         y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
                         x: { grid: { display: false } }
                     },
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, family: 'Noto Sans TC' } } } 
-                    }
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
                 }
             });
         }
