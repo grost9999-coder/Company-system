@@ -1,634 +1,866 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人智慧記帳本與資產分析系統</title>
-    <!-- 引入 Tailwind CSS 和 Chart.js -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭收支存摺</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper: #f6f1e4;
+    --paper-line: #d8cdaf;
+    --ink: #1e3a52;
+    --ink-soft: #46617a;
+    --seal: #a4322f;
+    --seal-soft: #c9645f;
+    --gold: #b6902f;
+    --income: #2f6b4f;
+    --income-bg: #e7efe4;
+    --expense: #a4322f;
+    --expense-bg: #f5e8e2;
+    --card-shadow: 0 2px 10px rgba(30,58,82,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Noto Serif TC","PMingLiU","Georgia",serif;
+    background: linear-gradient(180deg,#e8e0cc,#f6f1e4 200px);
+    color: var(--ink);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  .cover{
+    background: var(--ink);
+    color:#f6f1e4;
+    padding: 28px 20px 22px;
+    position:relative;
+    overflow:hidden;
+    border-bottom: 6px double var(--gold);
+  }
+  .cover::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 14px);
+  }
+  .cover h1{
+    margin:0;
+    font-size: 1.55rem;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
+  .cover .sub{
+    margin-top:6px;
+    font-size:0.8rem;
+    color:#c9bd9a;
+    letter-spacing:0.08em;
+  }
+  .seal-stamp{
+    position:absolute;
+    right:18px;
+    top:18px;
+    width:58px;
+    height:58px;
+    border:3px solid var(--seal-soft);
+    border-radius:6px;
+    color:var(--seal-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.1rem;
+    letter-spacing:0.15em;
+    writing-mode: vertical-rl;
+    transform: rotate(2deg);
+    opacity:0.85;
+    font-weight:700;
+  }
+  nav.tabs{
+    display:flex;
+    background:#efe6cd;
+    border-bottom:1px solid var(--paper-line);
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:0 2px 6px rgba(0,0,0,0.06);
+  }
+  nav.tabs button{
+    flex:1;
+    padding:13px 6px;
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:0.86rem;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition: all .15s ease;
+  }
+  nav.tabs button.active{
+    color:var(--ink);
+    font-weight:700;
+    border-bottom-color: var(--seal);
+    background: var(--paper);
+  }
+  main{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 18px 14px 10px;
+  }
+  .page{
+    display:none;
+  }
+  .page.active{
+    display:block;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    box-shadow: var(--card-shadow);
+    padding:16px;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    left:14px; right:14px; top:0;
+    height:1px;
+    background: repeating-linear-gradient(90deg, var(--paper-line) 0 6px, transparent 6px 11px);
+  }
+  .card h2{
+    margin:0 0 12px;
+    font-size:1rem;
+    letter-spacing:0.06em;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2::before{
+    content:"";
+    width:6px;height:6px;
+    background:var(--seal);
+    border-radius:50%;
+    display:inline-block;
+  }
+
+  .type-switch{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .type-switch button{
+    flex:1;
+    padding:9px;
+    border-radius:6px;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    font-family:inherit;
+    font-size:0.88rem;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .type-switch button.sel-income.active{
+    background:var(--income-bg);
+    border-color:var(--income);
+    color:var(--income);
+    font-weight:700;
+  }
+  .type-switch button.sel-expense.active{
+    background:var(--expense-bg);
+    border-color:var(--expense);
+    color:var(--expense);
+    font-weight:700;
+  }
+
+  label{
+    display:block;
+    font-size:0.75rem;
+    color:var(--ink-soft);
+    margin:10px 0 4px;
+    letter-spacing:0.04em;
+  }
+  input[type=text], input[type=number], input[type=date], select, textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    background:#fffdf7;
+    font-family: inherit;
+    font-size:0.92rem;
+    color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:2px solid var(--gold);
+    outline-offset:1px;
+  }
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  .chip{
+    padding:5px 11px;
+    border-radius:14px;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    font-size:0.78rem;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .chip.sel{
+    background:var(--ink);
+    color:#f6f1e4;
+    border-color:var(--ink);
+  }
+  .btn-main{
+    margin-top:14px;
+    width:100%;
+    padding:11px;
+    border:none;
+    border-radius:6px;
+    background:var(--ink);
+    color:#f6f1e4;
+    font-family:inherit;
+    font-size:0.95rem;
+    letter-spacing:0.08em;
+    cursor:pointer;
+  }
+  .btn-main:active{ transform: scale(0.99); }
+  .btn-ghost{
+    background:none;
+    border:1px solid var(--paper-line);
+    color:var(--ink-soft);
+    padding:7px 12px;
+    border-radius:6px;
+    font-family:inherit;
+    font-size:0.8rem;
+    cursor:pointer;
+  }
+
+  .search-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .search-row input{ flex:1; }
+
+  .entry-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 4px;
+    border-bottom:1px dashed var(--paper-line);
+  }
+  .entry-row:last-child{ border-bottom:none; }
+  .entry-icon{
+    width:34px;height:34px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.95rem;
+    flex-shrink:0;
+    border:1px solid;
+  }
+  .entry-icon.income{ background:var(--income-bg); color:var(--income); border-color:var(--income);}
+  .entry-icon.expense{ background:var(--expense-bg); color:var(--expense); border-color:var(--expense);}
+  .entry-mid{ flex:1; min-width:0; }
+  .entry-cat{ font-size:0.9rem; font-weight:700; }
+  .entry-note{ font-size:0.76rem; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .entry-date{ font-size:0.72rem; color:#9a8f6f; margin-top:2px;}
+  .entry-amt{
+    font-family:"Courier New", monospace;
+    font-size:0.98rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .entry-amt.income{ color:var(--income); }
+  .entry-amt.expense{ color:var(--expense); }
+  .entry-del{
+    background:none;
+    border:none;
+    color:#b7a98a;
+    font-size:1.1rem;
+    cursor:pointer;
+    padding:2px 4px;
+  }
+  .entry-del:hover{ color:var(--seal); }
+
+  .empty-state{
+    text-align:center;
+    color:#a99a75;
+    font-size:0.85rem;
+    padding:24px 0;
+  }
+
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .stat-card{
+    background:var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    padding:12px 8px;
+    text-align:center;
+    box-shadow: var(--card-shadow);
+  }
+  .stat-card .lbl{ font-size:0.7rem; color:var(--ink-soft); }
+  .stat-card .val{ font-family:"Courier New",monospace; font-size:1.05rem; font-weight:700; margin-top:4px; }
+  .stat-card.income .val{ color:var(--income); }
+  .stat-card.expense .val{ color:var(--expense); }
+  .stat-card.balance .val{ color:var(--ink); }
+
+  .status-pill{
+    padding:4px 10px;
+    border-radius:12px;
+    font-size:0.72rem;
+    border:1px solid;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .status-pill.pending{ background:#fbeee0; color:#a4632f; border-color:#a4632f; }
+  .status-pill.recovered{ background:var(--income-bg); color:var(--income); border-color:var(--income); }
+
+  .ins-row{
+    padding:12px 4px;
+    border-bottom:1px dashed var(--paper-line);
+  }
+  .ins-row:last-child{ border-bottom:none; }
+  .ins-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+  .ins-name{ font-weight:700; font-size:0.92rem; }
+  .ins-note{ font-size:0.78rem; color:var(--ink-soft); margin-top:3px; }
+  .ins-dates{ font-size:0.72rem; color:#9a8f6f; margin-top:4px; }
+  .ins-amt{ font-family:"Courier New",monospace; font-weight:700; margin-top:6px; }
+  .ins-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+
+  .backup-row{
+    display:flex;
+    gap:8px;
+    margin-top:4px;
+  }
+  .backup-row .btn-ghost{ flex:1; text-align:center; }
+  #importFile{ display:none; }
+
+  .chart-wrap{
+    position:relative;
+    height:260px;
+    margin-top:6px;
+  }
+  .toast{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#f6f1e4;
+    padding:9px 18px;
+    border-radius:20px;
+    font-size:0.82rem;
+    box-shadow:0 4px 14px rgba(0,0,0,0.2);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:100;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+
+  @media (min-width:600px){
+    .cover h1{ font-size:1.8rem; }
+  }
+</style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-indigo-50/20 to-blue-50/30 text-slate-800 min-h-screen flex flex-col">
+<body>
 
-    <!-- 頂部導航欄 (質感深藍漸層) -->
-    <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-blue-700 text-white shadow-lg sticky top-0 z-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-md shadow-inner text-2xl">
-                    💎
-                </div>
-                <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">個人智慧記帳與資產管理</h1>
-                    <p class="text-xs text-indigo-200">精準掌握收支、保險代墊與財務趨勢</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2.5">
-                <button onclick="exportData()" class="bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-md transition shadow-sm flex items-center gap-1.5">
-                    📥 備份資料
-                </button>
-                <label class="bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-md transition cursor-pointer shadow-sm flex items-center gap-1.5">
-                    📤 還原資料 <input type="file" id="importFile" class="hidden" onchange="importData(event)">
-                </label>
-            </div>
+<div class="cover">
+  <div class="seal-stamp">記帳</div>
+  <h1>家庭收支存摺</h1>
+  <div class="sub">PASSBOOK LEDGER · 資料儲存於本機瀏覽器</div>
+</div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-page="ledger">收支記帳本</button>
+  <button class="tab-btn" data-page="insurance">保險代墊管理</button>
+  <button class="tab-btn" data-page="trend">收支趨勢分析</button>
+</nav>
+
+<main>
+
+  <!-- ================= 收支記帳本 ================= -->
+  <section id="page-ledger" class="page active">
+
+    <div class="card">
+      <h2>新增一筆</h2>
+      <div class="type-switch">
+        <button type="button" class="sel-income active" data-type="income">收入</button>
+        <button type="button" class="sel-expense" data-type="expense">支出</button>
+      </div>
+
+      <label>類別</label>
+      <div class="chip-row" id="catChips"></div>
+
+      <label>金額</label>
+      <input type="number" id="ledAmount" placeholder="0" min="0">
+
+      <label>日期</label>
+      <input type="date" id="ledDate">
+
+      <label>備註（選填）</label>
+      <input type="text" id="ledNote" placeholder="例如：菜市場採買">
+
+      <button class="btn-main" id="ledAddBtn">記一筆</button>
+    </div>
+
+    <div class="card">
+      <h2>明細查詢</h2>
+      <div class="search-row">
+        <input type="text" id="ledSearch" placeholder="搜尋類別或備註關鍵字">
+      </div>
+      <div id="ledList"></div>
+    </div>
+
+    <div class="card">
+      <h2>備份與還原</h2>
+      <div class="backup-row">
+        <button class="btn-ghost" id="exportBtn">匯出備份 (JSON)</button>
+        <button class="btn-ghost" id="importBtn">匯入還原</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json">
+    </div>
+
+  </section>
+
+  <!-- ================= 保險代墊管理 ================= -->
+  <section id="page-insurance" class="page">
+
+    <div class="stat-grid">
+      <div class="stat-card expense">
+        <div class="lbl">待回收總額</div>
+        <div class="val" id="insPendingTotal">0</div>
+      </div>
+      <div class="stat-card income">
+        <div class="lbl">已回收總額</div>
+        <div class="val" id="insRecoveredTotal">0</div>
+      </div>
+      <div class="stat-card balance">
+        <div class="lbl">代墊筆數</div>
+        <div class="val" id="insCount">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>新增代墊紀錄</h2>
+      <label>保戶 / 被保險人</label>
+      <input type="text" id="insName" placeholder="姓名">
+
+      <label>保單備註</label>
+      <input type="text" id="insNote" placeholder="保單號碼 / 險種等">
+
+      <label>代墊金額</label>
+      <input type="number" id="insAmount" placeholder="0" min="0">
+
+      <label>支出日期</label>
+      <input type="date" id="insPayDate">
+
+      <label>回收日期（選填，回收後可補填）</label>
+      <input type="date" id="insRecoverDate">
+
+      <button class="btn-main" id="insAddBtn">新增紀錄</button>
+    </div>
+
+    <div class="card">
+      <h2>代墊明細</h2>
+      <div id="insList"></div>
+    </div>
+
+  </section>
+
+  <!-- ================= 收支趨勢分析 ================= -->
+  <section id="page-trend" class="page">
+
+    <div class="stat-grid">
+      <div class="stat-card income">
+        <div class="lbl">總收入</div>
+        <div class="val" id="trendIncome">0</div>
+      </div>
+      <div class="stat-card expense">
+        <div class="lbl">總支出</div>
+        <div class="val" id="trendExpense">0</div>
+      </div>
+      <div class="stat-card balance">
+        <div class="lbl">淨結餘</div>
+        <div class="val" id="trendBalance">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>支出類別佔比</h2>
+      <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>每月收支趨勢</h2>
+      <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 資料層 ================= */
+const LS_LEDGER = 'passbook_ledger_entries';
+const LS_INSURANCE = 'passbook_insurance_records';
+
+const CATS = {
+  income: ['薪資','股票賣出收入','股票利息收入','其他收入'],
+  expense: ['飲食','醫療','加油','小孩教育','儲蓄','保險','定存股','房貸','信用卡','其他']
+};
+
+function loadLedger(){
+  try{ return JSON.parse(localStorage.getItem(LS_LEDGER)) || []; }catch(e){ return []; }
+}
+function saveLedger(arr){ localStorage.setItem(LS_LEDGER, JSON.stringify(arr)); }
+
+function loadInsurance(){
+  try{ return JSON.parse(localStorage.getItem(LS_INSURANCE)) || []; }catch(e){ return []; }
+}
+function saveInsurance(arr){ localStorage.setItem(LS_INSURANCE, JSON.stringify(arr)); }
+
+let ledgerEntries = loadLedger();
+let insuranceRecords = loadInsurance();
+
+/* ================= 工具 ================= */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return Number(n||0).toLocaleString('zh-Hant-TW'); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ================= Tab 切換 ================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-'+btn.dataset.page).classList.add('active');
+    if(btn.dataset.page === 'trend') renderCharts();
+  });
+});
+
+/* ================= 記帳本：類別選擇 ================= */
+let curType = 'income';
+let curCat = CATS.income[0];
+
+function renderCatChips(){
+  const wrap = document.getElementById('catChips');
+  wrap.innerHTML = '';
+  CATS[curType].forEach(cat=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (cat===curCat ? ' sel' : '');
+    c.textContent = cat;
+    c.addEventListener('click', ()=>{ curCat = cat; renderCatChips(); });
+    wrap.appendChild(c);
+  });
+}
+
+document.querySelectorAll('.type-switch button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.type-switch button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    curType = btn.dataset.type;
+    curCat = CATS[curType][0];
+    renderCatChips();
+  });
+});
+
+document.getElementById('ledDate').value = todayStr();
+renderCatChips();
+
+/* ================= 記帳本：新增 ================= */
+document.getElementById('ledAddBtn').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('ledAmount').value);
+  const date = document.getElementById('ledDate').value || todayStr();
+  const note = document.getElementById('ledNote').value.trim();
+
+  if(!amount || amount<=0){ showToast('請輸入正確金額'); return; }
+
+  ledgerEntries.unshift({
+    id: uid(),
+    type: curType,
+    category: curCat,
+    amount: amount,
+    date: date,
+    note: note,
+    ts: Date.now()
+  });
+  saveLedger(ledgerEntries);
+
+  document.getElementById('ledAmount').value = '';
+  document.getElementById('ledNote').value = '';
+  renderLedgerList();
+  showToast('已記一筆');
+});
+
+/* ================= 記帳本：列表 / 搜尋 / 刪除 ================= */
+function renderLedgerList(){
+  const keyword = document.getElementById('ledSearch').value.trim().toLowerCase();
+  const list = document.getElementById('ledList');
+  const filtered = ledgerEntries.filter(e=>{
+    if(!keyword) return true;
+    return e.category.toLowerCase().includes(keyword) || (e.note||'').toLowerCase().includes(keyword);
+  });
+
+  if(filtered.length===0){
+    list.innerHTML = '<div class="empty-state">尚無符合的紀錄</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(e=>`
+    <div class="entry-row">
+      <div class="entry-icon ${e.type}">${e.type==='income' ? '入' : '出'}</div>
+      <div class="entry-mid">
+        <div class="entry-cat">${e.category}</div>
+        ${e.note ? `<div class="entry-note">${escapeHtml(e.note)}</div>` : ''}
+        <div class="entry-date">${e.date}</div>
+      </div>
+      <div class="entry-amt ${e.type}">${e.type==='income'?'+':'-'}${fmt(e.amount)}</div>
+      <button class="entry-del" data-id="${e.id}" title="刪除">✕</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.entry-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      ledgerEntries = ledgerEntries.filter(e=>e.id !== btn.dataset.id);
+      saveLedger(ledgerEntries);
+      renderLedgerList();
+      showToast('已刪除');
+    });
+  });
+}
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+document.getElementById('ledSearch').addEventListener('input', renderLedgerList);
+renderLedgerList();
+
+/* ================= 記帳本：匯出 / 匯入 ================= */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const payload = { ledger: ledgerEntries, insurance: insuranceRecords, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `家庭收支存摺備份_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出備份');
+});
+
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(Array.isArray(data.ledger)){
+        ledgerEntries = data.ledger;
+        saveLedger(ledgerEntries);
+      }
+      if(Array.isArray(data.insurance)){
+        insuranceRecords = data.insurance;
+        saveInsurance(insuranceRecords);
+      }
+      renderLedgerList();
+      renderInsuranceList();
+      showToast('已還原備份');
+    }catch(err){
+      showToast('檔案格式錯誤，匯入失敗');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ================= 保險代墊管理 ================= */
+document.getElementById('insPayDate').value = todayStr();
+
+document.getElementById('insAddBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('insName').value.trim();
+  const note = document.getElementById('insNote').value.trim();
+  const amount = parseFloat(document.getElementById('insAmount').value);
+  const payDate = document.getElementById('insPayDate').value || todayStr();
+  const recoverDate = document.getElementById('insRecoverDate').value || '';
+
+  if(!name){ showToast('請輸入保戶姓名'); return; }
+  if(!amount || amount<=0){ showToast('請輸入正確金額'); return; }
+
+  insuranceRecords.unshift({
+    id: uid(),
+    name, note, amount, payDate, recoverDate,
+    status: recoverDate ? 'recovered' : 'pending',
+    ts: Date.now()
+  });
+  saveInsurance(insuranceRecords);
+
+  document.getElementById('insName').value = '';
+  document.getElementById('insNote').value = '';
+  document.getElementById('insAmount').value = '';
+  document.getElementById('insRecoverDate').value = '';
+
+  renderInsuranceList();
+  showToast('已新增代墊紀錄');
+});
+
+function renderInsuranceList(){
+  const list = document.getElementById('insList');
+
+  if(insuranceRecords.length===0){
+    list.innerHTML = '<div class="empty-state">尚無代墊紀錄</div>';
+  } else {
+    list.innerHTML = insuranceRecords.map(r=>`
+      <div class="ins-row">
+        <div class="ins-top">
+          <div class="ins-name">${escapeHtml(r.name)}</div>
+          <button class="entry-del" data-id="${r.id}" title="刪除">✕</button>
         </div>
-    </header>
-
-    <!-- 分頁導航列 -->
-    <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-xs sticky top-[73px] z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8">
-            <button onclick="switchTab('tab-ledger', this)" class="tab-btn py-4 px-3 border-b-2 border-indigo-600 text-indigo-600 font-bold text-sm transition flex items-center gap-2">
-                📝 收支記帳本
-            </button>
-            <button onclick="switchTab('tab-insurance', this)" class="tab-btn py-4 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition flex items-center gap-2">
-                🛡️ 保險代墊管理
-            </button>
-            <button onclick="switchTab('tab-analytics', this)" class="tab-btn py-4 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition flex items-center gap-2">
-                📊 收支趨勢分析
-            </button>
+        ${r.note ? `<div class="ins-note">${escapeHtml(r.note)}</div>` : ''}
+        <div class="ins-dates">支出：${r.payDate || '—'}　回收：${r.recoverDate || '尚未回收'}</div>
+        <div class="ins-amt">$${fmt(r.amount)}</div>
+        <div class="ins-actions">
+          <span class="status-pill ${r.status}" data-id="${r.id}">${r.status==='recovered' ? '已回收' : '待回收'}</span>
         </div>
-    </nav>
+      </div>
+    `).join('');
+  }
 
-    <!-- 主體內容區 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
+  list.querySelectorAll('.status-pill').forEach(pill=>{
+    pill.addEventListener('click', ()=>{
+      const rec = insuranceRecords.find(r=>r.id===pill.dataset.id);
+      if(!rec) return;
+      if(rec.status === 'pending'){
+        rec.status = 'recovered';
+        if(!rec.recoverDate) rec.recoverDate = todayStr();
+      } else {
+        rec.status = 'pending';
+        rec.recoverDate = '';
+      }
+      saveInsurance(insuranceRecords);
+      renderInsuranceList();
+    });
+  });
 
-        <!-- ================= 分頁一：收支記帳本 ================= -->
-        <div id="tab-ledger" class="tab-content active space-y-6">
-            <!-- 新增表單卡片 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">➕</span> 
-                        新增收支記錄
-                    </h2>
-                    <span class="text-xs text-slate-400 font-medium">* 必填欄位</span>
-                </div>
-                <form id="ledgerForm" onsubmit="addLedgerItem(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">日期</label>
-                        <input type="date" id="lDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">類型</label>
-                        <select id="lType" onchange="updateCategoryOptions()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                            <option value="收入">收入</option>
-                            <option value="支出">支出</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">類別</label>
-                        <select id="lCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                            <!-- 動態填入 -->
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">金額 (TWD)</label>
-                        <input type="number" id="lAmount" min="1" required placeholder="例如：1000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">備註說明</label>
-                        <input type="text" id="lNote" placeholder="例如：本薪 / 晚餐" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <span>✨</span> 儲存記錄
-                        </button>
-                    </div>
-                </form>
-            </div>
+  list.querySelectorAll('.entry-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      insuranceRecords = insuranceRecords.filter(r=>r.id !== btn.dataset.id);
+      saveInsurance(insuranceRecords);
+      renderInsuranceList();
+      showToast('已刪除');
+    });
+  });
 
-            <!-- 列表與篩選卡片 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">📋</span>
-                        收支明細列表
-                    </h2>
-                    <div class="w-full sm:w-72">
-                        <input type="text" id="ledgerSearch" placeholder="🔍 搜尋備註、類別或日期..." oninput="renderLedger()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none transition">
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-100/80 text-slate-600 uppercase text-xs tracking-wider">
-                                <th class="p-3.5 rounded-l-xl font-semibold">日期</th>
-                                <th class="p-3.5 font-semibold">類型</th>
-                                <th class="p-3.5 font-semibold">類別</th>
-                                <th class="p-3.5 text-right font-semibold">金額</th>
-                                <th class="p-3.5 font-semibold">備註說明</th>
-                                <th class="p-3.5 text-center rounded-r-xl font-semibold">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ledgerTableBody" class="divide-y divide-slate-100">
-                            <!-- 動態渲染 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  const pending = insuranceRecords.filter(r=>r.status==='pending').reduce((s,r)=>s+Number(r.amount||0),0);
+  const recovered = insuranceRecords.filter(r=>r.status==='recovered').reduce((s,r)=>s+Number(r.amount||0),0);
+  document.getElementById('insPendingTotal').textContent = fmt(pending);
+  document.getElementById('insRecoveredTotal').textContent = fmt(recovered);
+  document.getElementById('insCount').textContent = insuranceRecords.length;
+}
+renderInsuranceList();
 
-        <!-- ================= 分頁二：保險代墊管理 ================= -->
-        <div id="tab-insurance" class="tab-content space-y-6">
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">➕</span>
-                        新增保險代墊記錄
-                    </h2>
-                    <span class="text-xs text-slate-400 font-medium">代客墊付管理</span>
-                </div>
-                <form id="insuranceForm" onsubmit="addInsuranceItem(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">保戶姓名</label>
-                        <input type="text" id="iName" required placeholder="例如：王小明" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">保單名稱/備註</label>
-                        <input type="text" id="iPolicy" required placeholder="例如：終身壽險年繳" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">代墊金額 (TWD)</label>
-                        <input type="number" id="iAmount" min="1" required placeholder="金額" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">支出日期</label>
-                        <input type="date" id="iPayDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">回收日期 (未回收留空)</label>
-                        <input type="date" id="iReturnDate" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none transition">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <span>🛡️</span> 新增代墊
-                        </button>
-                    </div>
-                </form>
-            </div>
+/* ================= 趨勢分析 ================= */
+let pieChartInst, barChartInst;
 
-            <!-- 代墊列表 -->
-            <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 pb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">🛡️</span>
-                        保險代墊與回收明細
-                    </h2>
-                    <div id="insuranceSummary" class="text-sm font-medium bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl"></div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-100/80 text-slate-600 uppercase text-xs tracking-wider">
-                                <th class="p-3.5 rounded-l-xl font-semibold">保戶姓名</th>
-                                <th class="p-3.5 font-semibold">保單備註</th>
-                                <th class="p-3.5 text-right font-semibold">代墊金額</th>
-                                <th class="p-3.5 font-semibold">支出日期</th>
-                                <th class="p-3.5 font-semibold">回收日期</th>
-                                <th class="p-3.5 text-center font-semibold">狀態</th>
-                                <th class="p-3.5 text-center rounded-r-xl font-semibold">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="insuranceTableBody" class="divide-y divide-slate-100">
-                            <!-- 動態渲染 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+function renderCharts(){
+  const totalIncome = ledgerEntries.filter(e=>e.type==='income').reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalExpense = ledgerEntries.filter(e=>e.type==='expense').reduce((s,e)=>s+Number(e.amount||0),0);
+  document.getElementById('trendIncome').textContent = fmt(totalIncome);
+  document.getElementById('trendExpense').textContent = fmt(totalExpense);
+  document.getElementById('trendBalance').textContent = fmt(totalIncome-totalExpense);
 
-        <!-- ================= 分頁三：收支趨勢分析 ================= -->
-        <div id="tab-analytics" class="tab-content space-y-6">
-            <!-- 數據總覽卡片 -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">總收入</p>
-                        <h3 id="statTotalIncome" class="text-2xl font-bold text-emerald-600 mt-1">NT$ 0</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">📈</div>
-                </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">總支出</p>
-                        <h3 id="statTotalExpense" class="text-2xl font-bold text-rose-600 mt-1">NT$ 0</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">📉</div>
-                </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">淨結餘</p>
-                        <h3 id="statNetBalance" class="text-2xl font-bold text-indigo-600 mt-1">NT$ 0</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">💎</div>
-                </div>
-            </div>
+  // 支出類別佔比
+  const expenseByCat = {};
+  ledgerEntries.filter(e=>e.type==='expense').forEach(e=>{
+    expenseByCat[e.category] = (expenseByCat[e.category]||0) + Number(e.amount||0);
+  });
+  const pieLabels = Object.keys(expenseByCat);
+  const pieData = Object.values(expenseByCat);
+  const pieColors = ['#a4322f','#b6902f','#46617a','#2f6b4f','#c9645f','#8a6d3b','#5b7a94','#7a4a2f','#9a8f6f','#6f4a4a'];
 
-            <!-- 圖表區塊 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                    <h3 class="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📊</span> 支出類別佔比分析
-                    </h3>
-                    <div class="relative h-80 flex justify-center items-center">
-                        <canvas id="expenseChart"></canvas>
-                    </div>
-                </div>
-                <div class="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-indigo-100/40 border border-indigo-50">
-                    <h3 class="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📅</span> 每月收支趨勢對比
-                    </h3>
-                    <div class="relative h-80 flex justify-center items-center">
-                        <canvas id="trendChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  if(pieChartInst) pieChartInst.destroy();
+  pieChartInst = new Chart(pieCtx, {
+    type:'pie',
+    data:{
+      labels: pieLabels.length ? pieLabels : ['尚無支出資料'],
+      datasets:[{
+        data: pieData.length ? pieData : [1],
+        backgroundColor: pieLabels.length ? pieColors.slice(0,pieLabels.length) : ['#d8cdaf']
+      }]
+    },
+    options:{
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#1e3a52', font:{family:"'Noto Serif TC', serif"} } } }
+    }
+  });
 
-    </main>
+  // 每月收支趨勢
+  const monthMap = {}; // {yyyy-mm: {income, expense}}
+  ledgerEntries.forEach(e=>{
+    const m = (e.date||'').slice(0,7);
+    if(!m) return;
+    if(!monthMap[m]) monthMap[m] = {income:0, expense:0};
+    monthMap[m][e.type] += Number(e.amount||0);
+  });
+  const months = Object.keys(monthMap).sort();
+  const incomeSeries = months.map(m=>monthMap[m].income);
+  const expenseSeries = months.map(m=>monthMap[m].expense);
 
-    <!-- 頁腳 -->
-    <footer class="bg-white/60 backdrop-blur-md border-t border-slate-200/80 py-6 text-center text-xs text-slate-400 mt-auto">
-        個人智慧記帳本與資產管理系統 &copy; 2026 &bull; 資料自動安全儲存於瀏覽器 LocalStorage
-    </footer>
-
-    <!-- JavaScript 邏輯 -->
-    <script>
-        // 分類定義
-        const categories = {
-            "收入": ["薪資", "股票賣出收入", "股票利息收入", "其他收入"],
-            "支出": ["飲食", "醫療", "加油", "小孩教育", "儲蓄", "保險", "定存股", "房貸", "信用卡", "其他"]
-        };
-
-        // 資料初始化
-        let ledgerData = JSON.parse(localStorage.getItem('ledgerData')) || [
-            { id: 1, date: "2026-06-01", type: "收入", category: "薪資", amount: 65000, note: "6月份本薪" },
-            { id: 2, date: "2026-06-05", type: "支出", category: "房貸", amount: 22000, note: "房貸月繳" },
-            { id: 3, date: "2026-06-10", type: "支出", category: "飲食", amount: 8500, note: "伙食費" },
-            { id: 4, date: "2026-06-15", type: "收入", category: "股票利息收入", amount: 3200, note: "台積電股利" }
-        ];
-
-        let insuranceData = JSON.parse(localStorage.getItem('insuranceData')) || [
-            { id: 1, name: "王小明", policy: "終身醫療險代墊", amount: 15000, payDate: "2026-05-10", returnDate: "2026-05-25" },
-            { id: 2, name: "李小華", policy: "意外險保費", amount: 6800, payDate: "2026-06-02", returnDate: "" }
-        ];
-
-        let expenseChartInstance = null;
-        let trendChartInstance = null;
-
-        // 初始化執行
-        window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('lDate').value = today;
-            document.getElementById('iPayDate').value = today;
-
-            updateCategoryOptions();
-            renderLedger();
-            renderInsurance();
-            renderAnalytics();
-        };
-
-        // 切換分頁
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('border-indigo-600', 'text-indigo-600', 'font-bold');
-                el.classList.add('border-transparent', 'text-slate-500', 'font-medium');
-            });
-            document.getElementById(tabId).classList.add('active');
-            btn.classList.add('border-indigo-600', 'text-indigo-600', 'font-bold');
-            btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
-
-            if (tabId === 'tab-analytics') {
-                renderAnalytics();
-            }
-        }
-
-        // 更新類別選項
-        function updateCategoryOptions() {
-            const type = document.getElementById('lType').value;
-            const categorySelect = document.getElementById('lCategory');
-            categorySelect.innerHTML = '';
-            categories[type].forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat;
-                opt.textContent = cat;
-                categorySelect.appendChild(opt);
-            });
-        }
-
-        // ================= 記帳本功能 =================
-        function addLedgerItem(e) {
-            e.preventDefault();
-            const newItem = {
-                id: Date.now(),
-                date: document.getElementById('lDate').value,
-                type: document.getElementById('lType').value,
-                category: document.getElementById('lCategory').value,
-                amount: parseFloat(document.getElementById('lAmount').value),
-                note: document.getElementById('lNote').value || '-'
-            };
-            ledgerData.push(newItem);
-            saveAndRefreshLedger();
-            document.getElementById('ledgerForm').reset();
-            document.getElementById('lDate').value = new Date().toISOString().split('T')[0];
-            updateCategoryOptions();
-        }
-
-        function deleteLedgerItem(id) {
-            if (confirm('確定要刪除這筆記錄嗎？')) {
-                ledgerData = ledgerData.filter(item => item.id !== id);
-                saveAndRefreshLedger();
-            }
-        }
-
-        function saveAndRefreshLedger() {
-            localStorage.setItem('ledgerData', JSON.stringify(ledgerData));
-            renderLedger();
-        }
-
-        function renderLedger() {
-            const tbody = document.getElementById('ledgerTableBody');
-            const keyword = document.getElementById('ledgerSearch').value.toLowerCase();
-            tbody.innerHTML = '';
-
-            const filtered = ledgerData.filter(item => 
-                item.category.toLowerCase().includes(keyword) || 
-                item.note.toLowerCase().includes(keyword) ||
-                item.date.includes(keyword)
-            );
-
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400 font-medium">沒有找到相關記錄</td></tr>`;
-                return;
-            }
-
-            filtered.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition duration-150";
-                const isIncome = item.type === '收入';
-                tr.innerHTML = `
-                    <td class="p-3.5 text-slate-600 font-medium">${item.date}</td>
-                    <td class="p-3.5"><span class="px-3 py-1 rounded-full text-xs font-semibold ${isIncome ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}">${item.type}</span></td>
-                    <td class="p-3.5 font-semibold text-slate-700">${item.category}</td>
-                    <td class="p-3.5 text-right font-bold ${isIncome ? 'text-emerald-600' : 'text-slate-800'}">${isIncome ? '+' : '-'}$ ${item.amount.toLocaleString()}</td>
-                    <td class="p-3.5 text-slate-500">${item.note}</td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="deleteLedgerItem(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition">🗑️ 刪除</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // ================= 保險代墊管理功能 =================
-        function addInsuranceItem(e) {
-            e.preventDefault();
-            const newItem = {
-                id: Date.now(),
-                name: document.getElementById('iName').value,
-                policy: document.getElementById('iPolicy').value,
-                amount: parseFloat(document.getElementById('iAmount').value),
-                payDate: document.getElementById('iPayDate').value,
-                returnDate: document.getElementById('iReturnDate').value
-            };
-            insuranceData.push(newItem);
-            saveAndRefreshInsurance();
-            document.getElementById('insuranceForm').reset();
-            document.getElementById('iPayDate').value = new Date().toISOString().split('T')[0];
-        }
-
-        function deleteInsuranceItem(id) {
-            if (confirm('確定要刪除這筆代墊記錄嗎？')) {
-                insuranceData = insuranceData.filter(item => item.id !== id);
-                saveAndRefreshInsurance();
-            }
-        }
-
-        function toggleInsuranceStatus(id) {
-            const item = insuranceData.find(i => i.id === id);
-            if (item) {
-                if (item.returnDate) {
-                    item.returnDate = ""; 
-                } else {
-                    item.returnDate = new Date().toISOString().split('T')[0]; 
-                }
-                saveAndRefreshInsurance();
-            }
-        }
-
-        function saveAndRefreshInsurance() {
-            localStorage.setItem('insuranceData', JSON.stringify(insuranceData));
-            renderInsurance();
-        }
-
-        function renderInsurance() {
-            const tbody = document.getElementById('insuranceTableBody');
-            const summaryDiv = document.getElementById('insuranceSummary');
-            tbody.innerHTML = '';
-
-            let totalPending = 0;
-            let totalCollected = 0;
-
-            insuranceData.sort((a, b) => new Date(b.payDate) - new Date(a.payDate));
-
-            if (insuranceData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400 font-medium">目前沒有保險代墊記錄</td></tr>`;
-                summaryDiv.innerHTML = `未回收總額: NT$ 0`;
-                return;
-            }
-
-            insuranceData.forEach(item => {
-                const isReturned = Boolean(item.returnDate);
-                if (isReturned) {
-                    totalCollected += item.amount;
-                } else {
-                    totalPending += item.amount;
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition duration-150";
-                tr.innerHTML = `
-                    <td class="p-3.5 font-bold text-slate-800">${item.name}</td>
-                    <td class="p-3.5 text-slate-600 font-medium">${item.policy}</td>
-                    <td class="p-3.5 text-right font-bold text-slate-800">NT$ ${item.amount.toLocaleString()}</td>
-                    <td class="p-3.5 text-slate-500">${item.payDate}</td>
-                    <td class="p-3.5 text-slate-500">${item.returnDate ? item.returnDate : '<span class="text-amber-600 font-medium italic">尚未回收</span>'}</td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="toggleInsuranceStatus(${item.id})" class="px-3 py-1 rounded-full text-xs font-bold transition shadow-xs ${isReturned ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'}">
-                            ${isReturned ? '✅ 已回收' : '⏳ 待回收 (點擊切換)'}
-                        </button>
-                    </td>
-                    <td class="p-3.5 text-center">
-                        <button onclick="deleteInsuranceItem(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition">🗑️ 刪除</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            summaryDiv.innerHTML = `未回收總額: <span class="text-rose-600 font-bold">NT$ ${totalPending.toLocaleString()}</span> &bull; 已回收總額: <span class="text-emerald-600 font-bold">NT$ ${totalCollected.toLocaleString()}</span>`;
-        }
-
-        // ================= 收支趨勢分析與圖表 =================
-        function renderAnalytics() {
-            let totalIncome = 0;
-            let totalExpense = 0;
-            let expenseByCategory = {};
-
-            categories["支出"].forEach(cat => expenseByCategory[cat] = 0);
-
-            ledgerData.forEach(item => {
-                if (item.type === '收入') {
-                    totalIncome += item.amount;
-                } else {
-                    totalExpense += item.amount;
-                    if (expenseByCategory[item.category] !== undefined) {
-                        expenseByCategory[item.category] += item.amount;
-                    } else {
-                        expenseByCategory[item.category] = item.amount;
-                    }
-                }
-            });
-
-            const netBalance = totalIncome - totalExpense;
-
-            document.getElementById('statTotalIncome').textContent = `NT$ ${totalIncome.toLocaleString()}`;
-            document.getElementById('statTotalExpense').textContent = `NT$ ${totalExpense.toLocaleString()}`;
-            const netEl = document.getElementById('statNetBalance');
-            netEl.textContent = `NT$ ${netBalance.toLocaleString()}`;
-            netEl.className = `text-2xl font-bold mt-1 ${netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
-
-            const filteredExpenseLabels = [];
-            const filteredExpenseData = [];
-            Object.keys(expenseByCategory).forEach(cat => {
-                if (expenseByCategory[cat] > 0) {
-                    filteredExpenseLabels.push(cat);
-                    filteredExpenseData.push(expenseByCategory[cat]);
-                }
-            });
-
-            const ctxExpense = document.getElementById('expenseChart').getContext('2d');
-            if (expenseChartInstance) expenseChartInstance.destroy();
-            expenseChartInstance = new Chart(ctxExpense, {
-                type: 'doughnut',
-                data: {
-                    labels: filteredExpenseLabels.length > 0 ? filteredExpenseLabels : ['尚無支出數據'],
-                    datasets: [{
-                        data: filteredExpenseData.length > 0 ? filteredExpenseData : [1],
-                        backgroundColor: ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e', '#64748b', '#94a3b8'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, family: 'Noto Sans TC' } } } 
-                    }
-                }
-            });
-
-            let monthlyData = {};
-            ledgerData.forEach(item => {
-                const month = item.date.substring(0, 7); 
-                if (!monthlyData[month]) {
-                    monthlyData[month] = { income: 0, expense: 0 };
-                }
-                if (item.type === '收入') {
-                    monthlyData[month].income += item.amount;
-                } else {
-                    monthlyData[month].expense += item.amount;
-                }
-            });
-
-            const sortedMonths = Object.keys(monthlyData).sort();
-            const incomeTrend = sortedMonths.map(m => monthlyData[m].income);
-            const expenseTrend = sortedMonths.map(m => monthlyData[m].expense);
-
-            const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            if (trendChartInstance) trendChartInstance.destroy();
-            trendChartInstance = new Chart(ctxTrend, {
-                type: 'bar',
-                data: {
-                    labels: sortedMonths.length > 0 ? sortedMonths : ['無資料'],
-                    datasets: [
-                        {
-                            label: '收入',
-                            data: incomeTrend.length > 0 ? incomeTrend : [0],
-                            backgroundColor: '#10b981',
-                            borderRadius: 6
-                        },
-                        {
-                            label: '支出',
-                            data: expenseTrend.length > 0 ? expenseTrend : [0],
-                            backgroundColor: '#f43f5e',
-                            borderRadius: 6
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                        x: { grid: { display: false } }
-                    },
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, family: 'Noto Sans TC' } } } 
-                    }
-                }
-            });
-        }
-
-        // ================= 資料備份與還原 =================
-        function exportData() {
-            const data = {
-                ledger: ledgerData,
-                insurance: insuranceData
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `my_accounting_backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.ledger && parsed.insurance) {
-                        ledgerData = parsed.ledger;
-                        insuranceData = parsed.insurance;
-                        saveAndRefreshLedger();
-                        saveAndRefreshInsurance();
-                        alert('資料還原成功！');
-                    } else {
-                        alert('檔案格式錯誤！');
-                    }
-                } catch (err) {
-                    alert('解析檔案失敗，請確認檔案格式是否正確。');
-                }
-            };
-            reader.readAsText(file);
-        }
-    </script>
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  if(barChartInst) barChartInst.destroy();
+  barChartInst = new Chart(barCtx, {
+    type:'bar',
+    data:{
+      labels: months.length ? months : ['尚無資料'],
+      datasets:[
+        { label:'收入', data: incomeSeries.length ? incomeSeries : [0], backgroundColor:'#2f6b4f' },
+        { label:'支出', data: expenseSeries.length ? expenseSeries : [0], backgroundColor:'#a4322f' }
+      ]
+    },
+    options:{
+      scales:{
+        x:{ ticks:{ color:'#46617a' }, grid:{ display:false } },
+        y:{ ticks:{ color:'#46617a' }, grid:{ color:'#e6dfc8' } }
+      },
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#1e3a52', font:{family:"'Noto Serif TC', serif"} } } }
+    }
+  });
+}
+</script>
 </body>
 </html>
