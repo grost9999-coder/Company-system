@@ -411,6 +411,12 @@
       <label>類別</label>
       <div class="chip-row" id="catChips"></div>
 
+      <label>帳戶</label>
+      <div class="chip-row" id="accountChips"></div>
+
+      <label>支付方式</label>
+      <div class="chip-row" id="methodChips"></div>
+
       <label>金額</label>
       <input type="number" id="ledAmount" placeholder="0" min="0">
 
@@ -421,6 +427,7 @@
       <input type="text" id="ledNote" placeholder="例如：菜市場採買">
 
       <button class="btn-main" id="ledAddBtn">記一筆</button>
+      <button class="btn-ghost" id="ledCancelEditBtn" style="display:none; width:100%; margin-top:8px; text-align:center;">取消編輯</button>
     </div>
 
     <div class="card">
@@ -528,8 +535,10 @@ const LS_INSURANCE = 'passbook_insurance_records';
 
 const CATS = {
   income: ['薪資','股票賣出收入','股票利息收入','其他收入'],
-  expense: ['飲食','醫療','加油','小孩教育','儲蓄','保險','定存股','房貸','信用卡','其他']
+  expense: ['飲食','醫療','加油','小孩教育','儲蓄','保險','勞保費','健保費','定存股','房貸','信用卡','其他']
 };
+const ACCOUNTS = ['玉山銀行','中國信託'];
+const METHODS = ['現金','信用卡'];
 
 function loadLedger(){
   try{ return JSON.parse(localStorage.getItem(LS_LEDGER)) || []; }catch(e){ return []; }
@@ -572,6 +581,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 /* ================= 記帳本：類別選擇 ================= */
 let curType = 'income';
 let curCat = CATS.income[0];
+let curAccount = ACCOUNTS[0];
+let curMethod = METHODS[0];
+let editingId = null; // 目前正在編輯的記帳本紀錄 id
 
 function renderCatChips(){
   const wrap = document.getElementById('catChips');
@@ -581,6 +593,30 @@ function renderCatChips(){
     c.className = 'chip' + (cat===curCat ? ' sel' : '');
     c.textContent = cat;
     c.addEventListener('click', ()=>{ curCat = cat; renderCatChips(); });
+    wrap.appendChild(c);
+  });
+}
+
+function renderAccountChips(){
+  const wrap = document.getElementById('accountChips');
+  wrap.innerHTML = '';
+  ACCOUNTS.forEach(acc=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (acc===curAccount ? ' sel' : '');
+    c.textContent = acc;
+    c.addEventListener('click', ()=>{ curAccount = acc; renderAccountChips(); });
+    wrap.appendChild(c);
+  });
+}
+
+function renderMethodChips(){
+  const wrap = document.getElementById('methodChips');
+  wrap.innerHTML = '';
+  METHODS.forEach(m=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (m===curMethod ? ' sel' : '');
+    c.textContent = m;
+    c.addEventListener('click', ()=>{ curMethod = m; renderMethodChips(); });
     wrap.appendChild(c);
   });
 }
@@ -597,6 +633,8 @@ document.querySelectorAll('.type-switch button').forEach(btn=>{
 
 document.getElementById('ledDate').value = todayStr();
 renderCatChips();
+renderAccountChips();
+renderMethodChips();
 
 /* ================= 記帳本：新增 ================= */
 document.getElementById('ledAddBtn').addEventListener('click', ()=>{
@@ -606,21 +644,72 @@ document.getElementById('ledAddBtn').addEventListener('click', ()=>{
 
   if(!amount || amount<=0){ showToast('請輸入正確金額'); return; }
 
-  ledgerEntries.unshift({
-    id: uid(),
-    type: curType,
-    category: curCat,
-    amount: amount,
-    date: date,
-    note: note,
-    ts: Date.now()
-  });
-  saveLedger(ledgerEntries);
+  if(editingId){
+    const idx = ledgerEntries.findIndex(e=>e.id===editingId);
+    if(idx>-1){
+      ledgerEntries[idx] = {
+        ...ledgerEntries[idx],
+        type: curType, category: curCat, account: curAccount, method: curMethod,
+        amount, date, note
+      };
+      saveLedger(ledgerEntries);
+      showToast('已更新這筆');
+    }
+    exitEditMode();
+  } else {
+    ledgerEntries.unshift({
+      id: uid(),
+      type: curType,
+      category: curCat,
+      account: curAccount,
+      method: curMethod,
+      amount: amount,
+      date: date,
+      note: note,
+      ts: Date.now()
+    });
+    saveLedger(ledgerEntries);
+    showToast('已記一筆');
+  }
 
   document.getElementById('ledAmount').value = '';
   document.getElementById('ledNote').value = '';
   renderLedgerList();
-  showToast('已記一筆');
+});
+
+function enterEditMode(entry){
+  editingId = entry.id;
+  curType = entry.type;
+  curCat = entry.category;
+  curAccount = entry.account || ACCOUNTS[0];
+  curMethod = entry.method || METHODS[0];
+
+  document.querySelectorAll('.type-switch button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.type === curType);
+  });
+  renderCatChips();
+  renderAccountChips();
+  renderMethodChips();
+
+  document.getElementById('ledAmount').value = entry.amount;
+  document.getElementById('ledDate').value = entry.date;
+  document.getElementById('ledNote').value = entry.note || '';
+  document.getElementById('ledAddBtn').textContent = '更新這筆';
+  document.getElementById('ledCancelEditBtn').style.display = 'block';
+  document.querySelector('#page-ledger .card h2').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function exitEditMode(){
+  editingId = null;
+  document.getElementById('ledAddBtn').textContent = '記一筆';
+  document.getElementById('ledCancelEditBtn').style.display = 'none';
+}
+
+document.getElementById('ledCancelEditBtn').addEventListener('click', ()=>{
+  exitEditMode();
+  document.getElementById('ledAmount').value = '';
+  document.getElementById('ledNote').value = '';
+  document.getElementById('ledDate').value = todayStr();
 });
 
 /* ================= 記帳本：列表 / 搜尋 / 刪除 ================= */
@@ -638,20 +727,30 @@ function renderLedgerList(){
   }
 
   list.innerHTML = filtered.map(e=>`
-    <div class="entry-row">
+    <div class="entry-row" data-id="${e.id}" style="cursor:pointer;">
       <div class="entry-icon ${e.type}">${e.type==='income' ? '入' : '出'}</div>
       <div class="entry-mid">
         <div class="entry-cat">${e.category}</div>
         ${e.note ? `<div class="entry-note">${escapeHtml(e.note)}</div>` : ''}
-        <div class="entry-date">${e.date}</div>
+        <div class="entry-date">${e.date}${e.account ? '　'+e.account : ''}${e.method ? '　'+e.method : ''}</div>
       </div>
       <div class="entry-amt ${e.type}">${e.type==='income'?'+':'-'}${fmt(e.amount)}</div>
       <button class="entry-del" data-id="${e.id}" title="刪除">✕</button>
     </div>
   `).join('');
 
+  list.querySelectorAll('.entry-row').forEach(row=>{
+    row.addEventListener('click', (evt)=>{
+      if(evt.target.closest('.entry-del')) return;
+      const entry = ledgerEntries.find(e=>e.id===row.dataset.id);
+      if(entry) enterEditMode(entry);
+    });
+  });
+
   list.querySelectorAll('.entry-del').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', (evt)=>{
+      evt.stopPropagation();
+      if(editingId === btn.dataset.id) exitEditMode();
       ledgerEntries = ledgerEntries.filter(e=>e.id !== btn.dataset.id);
       saveLedger(ledgerEntries);
       renderLedgerList();
