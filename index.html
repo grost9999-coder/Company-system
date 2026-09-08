@@ -211,6 +211,18 @@
     background:#fff;
   }
   .field textarea{ resize:vertical; min-height:64px; }
+  .field input.invalid, .field textarea.invalid{
+    border-color:var(--red); background:#FBEAE8;
+  }
+  .pickup-inline{
+    background:var(--paper-2); border-radius:14px; padding:14px 16px 16px;
+    margin-top:16px; display:flex; flex-wrap:wrap; gap:12px;
+  }
+  .pickup-inline .field{ margin-top:0; flex:1; min-width:130px; }
+  .pickup-inline-location{
+    width:100%; margin:2px 0 0; font-size:12.5px; color:var(--red-deep);
+    font-weight:700;
+  }
   .submit-btn{
     width:100%; margin-top:20px; background:var(--red);
     color:#fff; border:none; padding:15px; border-radius:13px;
@@ -238,6 +250,24 @@
     margin-top:16px; background:#fff; border-radius:12px; padding:10px 18px;
     font-family:'Noto Serif TC'; font-weight:700; box-shadow:var(--shadow);
   }
+  .pay-box{
+    margin-top:20px; background:#fff; border-radius:16px; padding:18px;
+    width:100%; max-width:340px; box-shadow:var(--shadow);
+  }
+  .pay-amount{
+    margin:0 0 12px; font-size:14px; color:#5a4d43;
+  }
+  .pay-amount span{
+    font-family:'Noto Serif TC'; font-weight:900; font-size:20px; color:var(--red-deep);
+  }
+  .pay-btn{
+    display:block; width:100%; background:#06C755; color:#fff;
+    text-decoration:none; padding:13px; border-radius:12px;
+    font-weight:700; font-size:14.5px; box-sizing:border-box;
+  }
+  .pay-hint{
+    margin:10px 0 0; font-size:11.5px; color:#8a7b6c; line-height:1.6;
+  }
   .confirm-screen button{
     margin-top:26px; background:var(--ink); color:#fff; border:none;
     padding:12px 24px; border-radius:11px; font-weight:700; cursor:pointer;
@@ -262,14 +292,7 @@
 <div class="pickup-card">
   <h3 id="pickup-title">取貨資訊</h3>
   <div class="pickup-row"><div class="dot"></div><div id="pickup-location">取貨地點：喬鈺酥香屋 攤位（實際擺攤地點以群組公告為準）</div></div>
-  <div class="field" style="margin-top:10px;">
-    <label for="pickup-date">選擇取貨日期</label>
-    <input type="date" id="pickup-date">
-  </div>
-  <div class="field">
-    <label for="pickup-time">選擇取餐時間</label>
-    <input type="time" id="pickup-time">
-  </div>
+  <p class="hint" style="margin:8px 0 0;">加入品項後，於下方「查看訂單」時選擇取貨日期與時間。</p>
 </div>
 
 <div class="menu-section">
@@ -293,6 +316,18 @@
   <div id="sheet-lines"></div>
   <div class="cart-summary-total"><span>總金額</span><span id="sheet-total">$0</span></div>
 
+  <div class="pickup-inline">
+    <div class="field">
+      <label for="pickup-date">取貨日期</label>
+      <input type="date" id="pickup-date">
+    </div>
+    <div class="field">
+      <label for="pickup-time">取餐時間</label>
+      <input type="time" id="pickup-time">
+    </div>
+    <p class="pickup-inline-location" id="sheet-pickup-location"></p>
+  </div>
+
   <div class="field">
     <label for="cust-name">姓名</label>
     <input type="text" id="cust-name" placeholder="怎麼稱呼您">
@@ -313,8 +348,15 @@
   <div class="confirm-badge">✓</div>
   <h2>訂單已送出</h2>
   <p>我們收到您的訂單了，會依照選擇的日期準備。</p>
-  <p>取貨時麻煩告知姓名或訂單編號，謝謝您！</p>
   <div class="confirm-order-id" id="confirm-order-id">訂單編號 —</div>
+
+  <div class="pay-box" id="pay-box">
+    <p class="pay-amount">應付金額 <span id="pay-amount">$0</span></p>
+    <a id="pay-btn" class="pay-btn" href="#" target="_blank" rel="noopener">用 LINE Pay 付款</a>
+    <p class="pay-hint">點開後請自行輸入上方金額完成付款，我們核對到帳後會準備您的餐點。</p>
+  </div>
+
+  <p>取貨時麻煩告知姓名或訂單編號，謝謝您！</p>
   <button id="confirm-close">回到菜單</button>
 </div>
 
@@ -333,6 +375,10 @@ const SCHEDULE = {
   "2026-09-19": "太保市祥和一路西段（嘉義縣政府左前方）－嘉有好聲音市集",
 };
 const SCHEDULE_FALLBACK = "取貨地點尚未公告，請留意 LINE 群組公告或直接詢問我們";
+
+// LINE Pay 商店收款連結（從你的「顯示商店QR」畫面解出的付款連結）
+// 這是「固定商店QR」，客人點開後要自己在LINE Pay輸入金額，無法自動帶入或自動確認到帳。
+const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/5RuBSmb8ZNmAPFYG7NRgxDAgnDq7qOthSOz1iejLldEOFzL%252F2XIPmqOnk1JT1QpD";
 
 // 菜單設定。price 單位為新台幣。
 // 已依「嘉有好聲音市集限定」宣傳單上的實際套餐與價格更新。
@@ -559,6 +605,7 @@ const overlay = document.getElementById("overlay");
 
 document.getElementById("open-checkout").addEventListener("click", () => {
   renderSheet();
+  updatePickupLocation();
   sheet.classList.add("show");
   overlay.classList.add("show");
 });
@@ -586,11 +633,29 @@ document.getElementById("submit-order").addEventListener("click", async () => {
   const name = document.getElementById("cust-name").value.trim();
   const phone = document.getElementById("cust-phone").value.trim();
   const note = document.getElementById("cust-note").value.trim();
-  const pickupDate = document.getElementById("pickup-date").value;
-  const pickupTime = document.getElementById("pickup-time").value;
+  const dateInputEl = document.getElementById("pickup-date");
+  const timeInputEl = document.getElementById("pickup-time");
+  const nameInputEl = document.getElementById("cust-name");
+  const phoneInputEl = document.getElementById("cust-phone");
+  const pickupDate = dateInputEl.value;
+  const pickupTime = timeInputEl.value;
   const errorEl = document.getElementById("form-error");
 
+  [dateInputEl, timeInputEl, nameInputEl, phoneInputEl].forEach(el => el.classList.remove("invalid"));
+
   if (entries.length === 0 || !name || !phone || !pickupDate || !pickupTime) {
+    if (!pickupDate) dateInputEl.classList.add("invalid");
+    if (!pickupTime) timeInputEl.classList.add("invalid");
+    if (!name) nameInputEl.classList.add("invalid");
+    if (!phone) phoneInputEl.classList.add("invalid");
+    errorEl.textContent = entries.length === 0
+      ? "請先在上方選擇餐點。"
+      : "請確認標紅的欄位都已填寫：" + [
+          !pickupDate && "取貨日期",
+          !pickupTime && "取餐時間",
+          !name && "姓名",
+          !phone && "電話"
+        ].filter(Boolean).join("、");
     errorEl.style.display = "block";
     return;
   }
@@ -631,6 +696,15 @@ document.getElementById("submit-order").addEventListener("click", async () => {
 
   closeSheet();
   document.getElementById("confirm-order-id").textContent = `訂單編號 ${orderId}`;
+  document.getElementById("pay-amount").textContent = `$${payload.total}`;
+  const payBtn = document.getElementById("pay-btn");
+  const payBox = document.getElementById("pay-box");
+  if (LINE_PAY_LINK && LINE_PAY_LINK.startsWith("http")) {
+    payBtn.href = LINE_PAY_LINK;
+    payBox.style.display = "block";
+  } else {
+    payBox.style.display = "none";
+  }
   document.getElementById("confirm-screen").classList.add("show");
 
   // 清空購物車
@@ -651,10 +725,13 @@ document.getElementById("confirm-close").addEventListener("click", () => {
 
 // ---- 依日期自動顯示取貨地點 ----
 const pickupLocationEl = document.getElementById("pickup-location");
+const sheetPickupLocationEl = document.getElementById("sheet-pickup-location");
 function updatePickupLocation(){
   const date = dateInput.value;
   const loc = SCHEDULE[date];
-  pickupLocationEl.textContent = `取貨地點：${loc || SCHEDULE_FALLBACK}`;
+  const text = `取貨地點：${loc || SCHEDULE_FALLBACK}`;
+  pickupLocationEl.textContent = text;
+  if (sheetPickupLocationEl) sheetPickupLocationEl.textContent = date ? text : "請先選擇取貨日期";
 }
 
 // 預設取貨日期為明天
