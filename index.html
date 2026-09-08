@@ -72,6 +72,12 @@
     background:var(--red); color:#fff;
   }
 
+  .lookup-link{
+    border:none; background:transparent; color:var(--red-deep);
+    font-size:12.5px; font-weight:700; text-decoration:underline;
+    padding:4px; cursor:pointer; font-family:'Noto Sans TC';
+  }
+
   /* ---------- Promo banner ---------- */
   .promo-banner{
     margin:14px 20px 0; background:var(--gold-light);
@@ -232,6 +238,25 @@
   .submit-btn:disabled{ opacity:0.55; }
   .error-msg{ color:var(--red); font-size:12.5px; margin-top:8px; display:none; }
 
+  .lookup-results{ margin-top:18px; }
+  .lookup-results .empty-msg{ font-size:13px; color:#8a7b6c; text-align:center; padding:20px 0; }
+  .order-card{
+    background:#fff; border-radius:14px; padding:14px 16px;
+    margin-bottom:12px; box-shadow:var(--shadow);
+  }
+  .order-card .row1{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:6px;
+  }
+  .order-card .order-id{ font-weight:700; font-size:13.5px; font-family:'Noto Serif TC'; }
+  .order-card .status{
+    font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px;
+    background:var(--paper-2); color:var(--red-deep);
+  }
+  .order-card .items{ font-size:12.5px; color:#5a4d43; line-height:1.6; margin:0 0 4px; }
+  .order-card .meta{ font-size:12px; color:#8a7b6c; margin:0; }
+  .order-card .amount{ font-weight:700; color:var(--red-deep); }
+
   /* ---------- Confirmation ---------- */
   .confirm-screen{
     position:fixed; inset:0; background:var(--paper); z-index:60;
@@ -277,7 +302,7 @@
 <body>
 
 <header>
-  <p class="brand-eyebrow">喬鈺酥香屋 · 禾日餐車</p>
+  <p class="brand-eyebrow">喬鈺酥香屋</p>
   <h1>紅麴豆乳雞線上訂購</h1>
   <p class="sub">選好想吃的套餐和口味，填寫取貨時間，我們會準時炸好等你來拿。</p>
 </header>
@@ -285,6 +310,10 @@
 <div class="mode-switch">
   <button id="tab-daily" class="active">現炸菜單</button>
   <button id="tab-bbq">中秋烤肉包預購</button>
+</div>
+
+<div style="text-align:center; margin-top:10px;">
+  <button id="open-lookup" class="lookup-link">查詢我的訂單</button>
 </div>
 
 <div class="promo-banner" id="promo-banner" style="display:none;"></div>
@@ -342,6 +371,18 @@
   </div>
   <div class="error-msg" id="form-error">請確認已選品項、取貨日期與時間、姓名與電話都已填寫。</div>
   <button class="submit-btn" id="submit-order">送出訂單</button>
+</div>
+
+<div class="sheet-overlay" id="lookup-overlay"></div>
+<div class="sheet" id="lookup-sheet">
+  <div class="sheet-handle"></div>
+  <h2>查詢我的訂單</h2>
+  <div class="field">
+    <label for="lookup-phone">請輸入下單時填寫的電話</label>
+    <input type="tel" id="lookup-phone" placeholder="例如 0912345678">
+  </div>
+  <button class="submit-btn" id="lookup-submit">查詢</button>
+  <div id="lookup-results" class="lookup-results"></div>
 </div>
 
 <div class="confirm-screen" id="confirm-screen">
@@ -491,7 +532,7 @@ function renderMenu(){
 
       let flavorHtml = "";
       if (hasFlavors) {
-        const hint = cat.flavorMulti ? `<p class="desc" style="margin-top:6px;">口味可複選</p>` : "";
+        const hint = cat.flavorMulti ? `<p class="desc" style="margin-top:6px;">口味可複選</p>` : `<p class="desc" style="margin-top:6px;">口味請擇一</p>`;
         flavorHtml = hint + `<div class="flavor-row">` + cat.flavors.map(f => `
           <button class="flavor-pill ${activeFlavors.includes(f) ? "active" : ""}" data-action="flavor" data-item="${item.id}" data-flavor="${f}">${f}</button>
         `).join("") + `</div>`;
@@ -721,6 +762,53 @@ document.getElementById("submit-order").addEventListener("click", async () => {
 
 document.getElementById("confirm-close").addEventListener("click", () => {
   document.getElementById("confirm-screen").classList.remove("show");
+});
+
+// ---- 查詢訂單 ----
+const lookupSheet = document.getElementById("lookup-sheet");
+const lookupOverlay = document.getElementById("lookup-overlay");
+
+document.getElementById("open-lookup").addEventListener("click", () => {
+  lookupSheet.classList.add("show");
+  lookupOverlay.classList.add("show");
+});
+lookupOverlay.addEventListener("click", () => {
+  lookupSheet.classList.remove("show");
+  lookupOverlay.classList.remove("show");
+});
+
+document.getElementById("lookup-submit").addEventListener("click", async () => {
+  const phone = document.getElementById("lookup-phone").value.trim();
+  const resultsEl = document.getElementById("lookup-results");
+  if (!phone) {
+    resultsEl.innerHTML = `<p class="empty-msg">請先輸入電話號碼</p>`;
+    return;
+  }
+  if (!GAS_ENDPOINT || !GAS_ENDPOINT.startsWith("http")) {
+    resultsEl.innerHTML = `<p class="empty-msg">查詢功能尚未設定完成，請直接聯絡我們。</p>`;
+    return;
+  }
+  resultsEl.innerHTML = `<p class="empty-msg">查詢中…</p>`;
+  try {
+    const res = await fetch(`${GAS_ENDPOINT}?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json();
+    if (!data.ok || !data.orders || data.orders.length === 0) {
+      resultsEl.innerHTML = `<p class="empty-msg">找不到這個電話的訂單，請確認號碼是否正確。</p>`;
+      return;
+    }
+    resultsEl.innerHTML = data.orders.map(o => `
+      <div class="order-card">
+        <div class="row1">
+          <span class="order-id">${o["訂單編號"] || ""}</span>
+          <span class="status">${o["狀態"] || "已收到"}</span>
+        </div>
+        <p class="items">${o["品項明細"] || ""}</p>
+        <p class="meta">取貨：${o["取貨日期"] || ""} ${o["取貨時間"] || ""}　<span class="amount">$${o["總金額"] || ""}</span></p>
+      </div>
+    `).join("");
+  } catch (err) {
+    resultsEl.innerHTML = `<p class="empty-msg">查詢失敗，請直接聯絡我們核對訂單。</p>`;
+  }
 });
 
 // ---- 依日期自動顯示取貨地點 ----
