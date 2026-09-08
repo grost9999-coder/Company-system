@@ -94,7 +94,7 @@
     width:6px; height:6px; border-radius:50%; background:var(--gold);
     margin-top:6px; flex-shrink:0;
   }
-  .pickup-card select, .pickup-card input[type=date]{
+  .pickup-card select, .pickup-card input[type=date], .pickup-card input[type=time]{
     width:100%; margin-top:6px; padding:10px 12px; border-radius:10px;
     border:1px solid var(--line); font-family:'Noto Sans TC'; font-size:14px;
     background:var(--paper);
@@ -266,6 +266,10 @@
     <label for="pickup-date">選擇取貨日期</label>
     <input type="date" id="pickup-date">
   </div>
+  <div class="field">
+    <label for="pickup-time">選擇取餐時間</label>
+    <input type="time" id="pickup-time">
+  </div>
 </div>
 
 <div class="menu-section">
@@ -301,7 +305,7 @@
     <label for="cust-note">備註（同一套餐要不同口味請寫在這裡 / 其他需求）</label>
     <textarea id="cust-note" placeholder="選填"></textarea>
   </div>
-  <div class="error-msg" id="form-error">請確認已選品項、取貨日期、姓名與電話都已填寫。</div>
+  <div class="error-msg" id="form-error">請確認已選品項、取貨日期與時間、姓名與電話都已填寫。</div>
   <button class="submit-btn" id="submit-order">送出訂單</button>
 </div>
 
@@ -341,7 +345,8 @@ const MENUS = {
       {
         name: "紅麴豆乳雞",
         icon: "🌶️",
-        flavors: ["胡椒鹽", "辣粉"],
+        flavors: ["胡椒鹽", "辣粉", "梅粉"],
+        flavorMulti: true,
         items: [
           { id: "redA", name: "A 個人餐", desc: "翅腿 11支", price: 100 },
           { id: "redB", name: "B 個人餐", desc: "翅腿 6支＋三節翅 5支", price: 100 },
@@ -382,7 +387,7 @@ const MENUS = {
 
 let currentMode = "daily";
 const cart = {};              // { "itemId" 或 "itemId|口味": qty }
-const activeFlavorByItem = {}; // { itemId: 目前選取的口味 }
+const activeFlavorByItem = {}; // { itemId: [目前選取的口味, ...] }
 
 const menuListEl = document.getElementById("menu-list");
 const menuTitleEl = document.getElementById("menu-title");
@@ -392,7 +397,19 @@ const promoBannerEl = document.getElementById("promo-banner");
 
 function currentCategories(){ return MENUS[currentMode].categories; }
 function currentItems(){ return currentCategories().flatMap(c => c.items); }
-function itemKey(itemId, flavor){ return flavor ? `${itemId}|${flavor}` : itemId; }
+
+// flavors 可以是單一字串，也可以是陣列（複選口味）
+function itemKey(itemId, flavors){
+  if (!flavors || flavors.length === 0) return itemId;
+  const list = Array.isArray(flavors) ? flavors : [flavors];
+  return `${itemId}|${list.slice().sort().join("+")}`;
+}
+
+function getActiveFlavors(itemId, cat){
+  const stored = activeFlavorByItem[itemId];
+  if (stored && stored.length) return stored;
+  return [cat.flavors[0]];
+}
 
 function renderMenu(){
   const modeData = MENUS[currentMode];
@@ -419,8 +436,8 @@ function renderMenu(){
 
     cat.items.forEach(item => {
       const hasFlavors = !!cat.flavors;
-      const activeFlavor = hasFlavors ? (activeFlavorByItem[item.id] || cat.flavors[0]) : null;
-      const key = itemKey(item.id, activeFlavor);
+      const activeFlavors = hasFlavors ? getActiveFlavors(item.id, cat) : [];
+      const key = itemKey(item.id, activeFlavors);
       const qty = cart[key] || 0;
 
       const card = document.createElement("div");
@@ -428,8 +445,9 @@ function renderMenu(){
 
       let flavorHtml = "";
       if (hasFlavors) {
-        flavorHtml = `<div class="flavor-row">` + cat.flavors.map(f => `
-          <button class="flavor-pill ${f === activeFlavor ? "active" : ""}" data-action="flavor" data-item="${item.id}" data-flavor="${f}">${f}</button>
+        const hint = cat.flavorMulti ? `<p class="desc" style="margin-top:6px;">口味可複選</p>` : "";
+        flavorHtml = hint + `<div class="flavor-row">` + cat.flavors.map(f => `
+          <button class="flavor-pill ${activeFlavors.includes(f) ? "active" : ""}" data-action="flavor" data-item="${item.id}" data-flavor="${f}">${f}</button>
         `).join("") + `</div>`;
       }
 
@@ -445,7 +463,7 @@ function renderMenu(){
         <div class="item-bottom">
           <div class="stepper">
             <button data-action="dec" data-item="${item.id}">−</button>
-            <span id="qty-${key.replace('|','--')}">${qty}</span>
+            <span id="qty-${key.replace(/[^a-zA-Z0-9]/g, "_")}">${qty}</span>
             <button data-action="inc" data-item="${item.id}">＋</button>
           </div>
         </div>
@@ -463,16 +481,32 @@ menuListEl.addEventListener("click", (e) => {
   const action = btn.dataset.action;
   const itemId = btn.dataset.item;
 
+  const cat = currentCategories().find(c => c.items.some(i => i.id === itemId));
+
   if (action === "flavor") {
-    activeFlavorByItem[itemId] = btn.dataset.flavor;
+    const flavor = btn.dataset.flavor;
+    const current = getActiveFlavors(itemId, cat).slice();
+    const idx = current.indexOf(flavor);
+    if (cat.flavorMulti) {
+      // 複選：點一下切換勾選狀態，但至少保留一個口味
+      if (idx >= 0) {
+        if (current.length > 1) current.splice(idx, 1);
+      } else {
+        current.push(flavor);
+      }
+    } else {
+      // 單選：直接換成點到的口味
+      current.length = 0;
+      current.push(flavor);
+    }
+    activeFlavorByItem[itemId] = current;
     renderMenu();
     return;
   }
 
   // 找出這個品項目前選取的口味（如果有）
-  const cat = currentCategories().find(c => c.items.some(i => i.id === itemId));
-  const flavor = cat && cat.flavors ? (activeFlavorByItem[itemId] || cat.flavors[0]) : null;
-  const key = itemKey(itemId, flavor);
+  const flavors = cat && cat.flavors ? getActiveFlavors(itemId, cat) : null;
+  const key = itemKey(itemId, flavors);
   const current = cart[key] || 0;
 
   if (action === "inc") cart[key] = current + 1;
@@ -487,8 +521,9 @@ function cartEntries(){
   return Object.entries(cart)
     .filter(([key, qty]) => qty > 0)
     .map(([key, qty]) => {
-      const [itemId, flavor] = key.split("|");
+      const [itemId, flavorPart] = key.split("|");
       const item = items.find(i => i.id === itemId);
+      const flavor = flavorPart ? flavorPart.split("+").join("＋") : null;
       return item ? { item, flavor, qty, key } : null;
     })
     .filter(Boolean);
@@ -552,9 +587,10 @@ document.getElementById("submit-order").addEventListener("click", async () => {
   const phone = document.getElementById("cust-phone").value.trim();
   const note = document.getElementById("cust-note").value.trim();
   const pickupDate = document.getElementById("pickup-date").value;
+  const pickupTime = document.getElementById("pickup-time").value;
   const errorEl = document.getElementById("form-error");
 
-  if (entries.length === 0 || !name || !phone || !pickupDate) {
+  if (entries.length === 0 || !name || !phone || !pickupDate || !pickupTime) {
     errorEl.style.display = "block";
     return;
   }
@@ -572,6 +608,7 @@ document.getElementById("submit-order").addEventListener("click", async () => {
     itemsSummary,
     total: cartTotal(),
     pickupDate,
+    pickupTime,
     name,
     phone,
     note,
