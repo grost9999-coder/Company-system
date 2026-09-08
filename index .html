@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>喬鈺酥香屋 線上訂購</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red: #9E2B25;      /* 紅麴紅 — 招牌色 */
+    --red-deep: #7A211C;
+    --gold: #C98A2B;     /* 炸物金 — 強調/按鈕 */
+    --gold-light:#E4B65C;
+    --ink: #2B211C;      /* 炭燒黑褐 — 文字 */
+    --paper: #F6EEE0;    /* 米紙白 — 背景 */
+    --paper-2:#EFE3CC;
+    --green:#5C7048;     /* 蔥花綠 — 成功/確認 */
+    --lemon:#8A9A3E;     /* 檸檬雞系列輔助色 */
+    --line: rgba(43,33,28,0.14);
+    --shadow: 0 6px 18px rgba(43,33,28,0.16);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Noto Sans TC', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+  }
+  h1,h2,h3,.display{ font-family:'Noto Serif TC', serif; }
+
+  /* ---------- Header ---------- */
+  header{
+    background: linear-gradient(160deg, var(--red) 0%, var(--red-deep) 100%);
+    color:#F6EEE0;
+    padding:28px 20px 22px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute; right:-40px; top:-40px;
+    width:160px; height:160px; border-radius:50%;
+    background:rgba(201,138,43,0.28);
+  }
+  .brand-eyebrow{
+    font-size:13px; letter-spacing:0.04em; color:var(--gold-light);
+    margin:0 0 4px;
+  }
+  h1{
+    font-size:26px; font-weight:900; margin:0 0 6px; line-height:1.3;
+    position:relative;
+  }
+  header p.sub{
+    margin:0; font-size:14px; color:rgba(246,238,224,0.85); line-height:1.6;
+    position:relative;
+  }
+
+  /* ---------- Mode switch ---------- */
+  .mode-switch{
+    display:flex; gap:8px; margin:18px 20px 0;
+    background:#fff; border-radius:14px; padding:5px;
+    box-shadow:var(--shadow);
+  }
+  .mode-switch button{
+    flex:1; border:none; background:transparent; padding:11px 8px;
+    font-family:'Noto Sans TC'; font-weight:700; font-size:14px;
+    color:var(--ink); border-radius:10px; cursor:pointer;
+    transition:background .2s, color .2s;
+  }
+  .mode-switch button.active{
+    background:var(--red); color:#fff;
+  }
+
+  /* ---------- Promo banner ---------- */
+  .promo-banner{
+    margin:14px 20px 0; background:var(--gold-light);
+    border-radius:12px; padding:10px 14px;
+    font-size:12.5px; color:var(--red-deep); font-weight:700;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ---------- Pickup info card ---------- */
+  .pickup-card{
+    margin:16px 20px 0; background:#fff; border-radius:16px;
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .pickup-card h3{ font-size:15px; margin:0 0 8px; }
+  .pickup-row{
+    display:flex; gap:10px; font-size:13.5px; color:#5a4d43;
+    padding:5px 0; align-items:flex-start;
+  }
+  .pickup-row .dot{
+    width:6px; height:6px; border-radius:50%; background:var(--gold);
+    margin-top:6px; flex-shrink:0;
+  }
+  .pickup-card select, .pickup-card input[type=date]{
+    width:100%; margin-top:6px; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--line); font-family:'Noto Sans TC'; font-size:14px;
+    background:var(--paper);
+  }
+
+  /* ---------- Menu ---------- */
+  .menu-section{ padding:20px 20px 0; }
+  .menu-section h2{
+    font-size:18px; margin:0 0 4px; color:var(--red-deep);
+  }
+  .menu-section .hint{
+    font-size:12.5px; color:#8a7b6c; margin:0 0 14px;
+  }
+  .category-block{ margin-bottom:20px; }
+  .category-title{
+    display:flex; align-items:center; gap:8px;
+    font-size:15px; font-weight:700; margin:0 0 10px;
+    color:var(--ink);
+  }
+  .category-title .icon{ font-size:17px; }
+
+  .item-card{
+    background:#fff; border-radius:16px; padding:14px 16px;
+    margin-bottom:12px; box-shadow:var(--shadow);
+  }
+  .item-top{
+    display:flex; align-items:flex-start; gap:10px;
+  }
+  .item-info{ flex:1; min-width:0; }
+  .item-info .name{ font-weight:700; font-size:15px; margin:0 0 3px; }
+  .item-info .desc{ font-size:12px; color:#8a7b6c; margin:0 0 4px; line-height:1.4;}
+  .item-info .price{ font-size:14px; color:var(--red-deep); font-weight:700; }
+
+  .flavor-row{
+    display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;
+  }
+  .flavor-pill{
+    border:1.5px solid var(--line); background:var(--paper);
+    padding:6px 12px; border-radius:999px; font-size:12.5px;
+    font-weight:700; color:#5a4d43; cursor:pointer;
+  }
+  .flavor-pill.active{
+    background:var(--ink); border-color:var(--ink); color:#fff;
+  }
+
+  .item-bottom{
+    display:flex; align-items:center; justify-content:flex-end;
+    margin-top:10px;
+  }
+  .stepper{
+    display:flex; align-items:center; gap:0; flex-shrink:0;
+    border:1.5px solid var(--line); border-radius:10px; overflow:hidden;
+  }
+  .stepper button{
+    width:32px; height:32px; border:none; background:var(--paper-2);
+    font-size:16px; font-weight:700; color:var(--red-deep); cursor:pointer;
+  }
+  .stepper span{
+    width:28px; text-align:center; font-weight:700; font-size:14px;
+  }
+
+  /* ---------- Sticky cart bar ---------- */
+  .cart-bar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--ink); color:#fff;
+    padding:14px 20px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 -6px 20px rgba(0,0,0,0.25);
+    transform:translateY(120%); transition:transform .25s ease;
+    z-index:40;
+  }
+  .cart-bar.show{ transform:translateY(0); }
+  .cart-bar .count{ font-size:12.5px; color:rgba(255,255,255,0.7); }
+  .cart-bar .total{ font-size:18px; font-weight:900; font-family:'Noto Serif TC'; }
+  .cart-bar button{
+    margin-left:auto; background:var(--gold); color:var(--ink);
+    border:none; padding:12px 20px; border-radius:12px;
+    font-weight:700; font-size:14.5px; font-family:'Noto Sans TC';
+    cursor:pointer;
+  }
+
+  /* ---------- Checkout sheet ---------- */
+  .sheet-overlay{
+    position:fixed; inset:0; background:rgba(43,33,28,0.5);
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:50;
+  }
+  .sheet-overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; max-height:88vh;
+    background:var(--paper); border-radius:22px 22px 0 0;
+    transform:translateY(100%); transition:transform .28s ease;
+    z-index:51; overflow-y:auto; padding:20px 20px 28px;
+  }
+  .sheet.show{ transform:translateY(0); }
+  .sheet-handle{
+    width:40px; height:4px; background:var(--line); border-radius:2px;
+    margin:0 auto 16px;
+  }
+  .sheet h2{ font-size:19px; margin:0 0 14px; }
+  .cart-line{
+    display:flex; justify-content:space-between; font-size:14px;
+    padding:9px 0; border-bottom:1px solid var(--line);
+  }
+  .cart-line .qty{ color:#8a7b6c; margin-left:6px; }
+  .cart-summary-total{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 0 4px; font-weight:900; font-size:17px;
+    font-family:'Noto Serif TC';
+  }
+  .field{ margin-top:16px; }
+  .field label{ display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
+  .field input, .field textarea{
+    width:100%; padding:12px 13px; border-radius:11px;
+    border:1px solid var(--line); font-family:'Noto Sans TC'; font-size:14.5px;
+    background:#fff;
+  }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .submit-btn{
+    width:100%; margin-top:20px; background:var(--red);
+    color:#fff; border:none; padding:15px; border-radius:13px;
+    font-size:15.5px; font-weight:700; font-family:'Noto Sans TC';
+    cursor:pointer;
+  }
+  .submit-btn:disabled{ opacity:0.55; }
+  .error-msg{ color:var(--red); font-size:12.5px; margin-top:8px; display:none; }
+
+  /* ---------- Confirmation ---------- */
+  .confirm-screen{
+    position:fixed; inset:0; background:var(--paper); z-index:60;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:32px; text-align:center;
+  }
+  .confirm-screen.show{ display:flex; }
+  .confirm-badge{
+    width:64px; height:64px; border-radius:50%; background:var(--green);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:30px; margin-bottom:18px;
+  }
+  .confirm-screen h2{ font-size:21px; margin:0 0 10px; }
+  .confirm-screen p{ font-size:14px; color:#5a4d43; line-height:1.7; margin:0 0 4px; }
+  .confirm-order-id{
+    margin-top:16px; background:#fff; border-radius:12px; padding:10px 18px;
+    font-family:'Noto Serif TC'; font-weight:700; box-shadow:var(--shadow);
+  }
+  .confirm-screen button{
+    margin-top:26px; background:var(--ink); color:#fff; border:none;
+    padding:12px 24px; border-radius:11px; font-weight:700; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="brand-eyebrow">喬鈺酥香屋 · 禾日餐車</p>
+  <h1>紅麴豆乳雞線上訂購</h1>
+  <p class="sub">選好想吃的套餐和口味，填寫取貨時間，我們會準時炸好等你來拿。</p>
+</header>
+
+<div class="mode-switch">
+  <button id="tab-daily" class="active">現炸菜單</button>
+  <button id="tab-bbq">中秋烤肉包預購</button>
+</div>
+
+<div class="promo-banner" id="promo-banner" style="display:none;"></div>
+
+<div class="pickup-card">
+  <h3 id="pickup-title">取貨資訊</h3>
+  <div class="pickup-row"><div class="dot"></div><div id="pickup-location">取貨地點：喬鈺酥香屋 攤位（實際擺攤地點以群組公告為準）</div></div>
+  <div class="field" style="margin-top:10px;">
+    <label for="pickup-date">選擇取貨日期</label>
+    <input type="date" id="pickup-date">
+  </div>
+</div>
+
+<div class="menu-section">
+  <h2 id="menu-title">菜單</h2>
+  <p class="hint" id="menu-hint"></p>
+  <div id="menu-list"></div>
+</div>
+
+<div class="cart-bar" id="cart-bar">
+  <div>
+    <div class="count" id="cart-count">已選 0 項</div>
+    <div class="total" id="cart-total">$0</div>
+  </div>
+  <button id="open-checkout">查看訂單</button>
+</div>
+
+<div class="sheet-overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <h2>確認訂單</h2>
+  <div id="sheet-lines"></div>
+  <div class="cart-summary-total"><span>總金額</span><span id="sheet-total">$0</span></div>
+
+  <div class="field">
+    <label for="cust-name">姓名</label>
+    <input type="text" id="cust-name" placeholder="怎麼稱呼您">
+  </div>
+  <div class="field">
+    <label for="cust-phone">聯絡電話</label>
+    <input type="tel" id="cust-phone" placeholder="方便聯繫的電話">
+  </div>
+  <div class="field">
+    <label for="cust-note">備註（同一套餐要不同口味請寫在這裡 / 其他需求）</label>
+    <textarea id="cust-note" placeholder="選填"></textarea>
+  </div>
+  <div class="error-msg" id="form-error">請確認已選品項、取貨日期、姓名與電話都已填寫。</div>
+  <button class="submit-btn" id="submit-order">送出訂單</button>
+</div>
+
+<div class="confirm-screen" id="confirm-screen">
+  <div class="confirm-badge">✓</div>
+  <h2>訂單已送出</h2>
+  <p>我們收到您的訂單了，會依照選擇的日期準備。</p>
+  <p>取貨時麻煩告知姓名或訂單編號，謝謝您！</p>
+  <div class="confirm-order-id" id="confirm-order-id">訂單編號 —</div>
+  <button id="confirm-close">回到菜單</button>
+</div>
+
+<script>
+/* =========================================================================
+   設定區塊 — 開店前請依實際狀況修改
+   ========================================================================= */
+
+// Google Apps Script 部署後的 Web App 網址，貼在這裡（見說明文件）
+const GAS_ENDPOINT = "請貼上你的 Google Apps Script 網址";
+
+// 出攤地點表 — 每次確定隔天（或未來）擺攤地點後，在這裡加一行。
+// 日期格式固定 "YYYY-MM-DD"，客人選那天取貨時會自動顯示對應地點。
+// 沒有列在這裡的日期，會顯示「尚未公告」的提示文字。
+const SCHEDULE = {
+  "2026-09-19": "太保市祥和一路西段（嘉義縣政府左前方）－嘉有好聲音市集",
+};
+const SCHEDULE_FALLBACK = "取貨地點尚未公告，請留意 LINE 群組公告或直接詢問我們";
+
+// 菜單設定。price 單位為新台幣。
+// 已依「嘉有好聲音市集限定」宣傳單上的實際套餐與價格更新。
+const MENUS = {
+  daily: {
+    title: "現炸菜單",
+    hint: "各套餐可選口味，選好後加入購物車，於下方查看訂單並送出。",
+    promo: "🎤 消費滿 100 元即可挑戰 10 秒挑戰賽，好禮等你拿！",
+    categories: [
+      {
+        name: "紅麴豆乳雞",
+        icon: "🌶️",
+        flavors: ["胡椒鹽", "辣粉"],
+        items: [
+          { id: "redA", name: "A 個人餐", desc: "翅腿 11支", price: 100 },
+          { id: "redB", name: "B 個人餐", desc: "翅腿 6支＋三節翅 5支", price: 100 },
+          { id: "redC", name: "C 個人餐", desc: "三節翅 10支", price: 100 },
+          { id: "redD", name: "D 雙人分享餐", desc: "翅腿 12支＋三節翅 10支", price: 200 },
+          { id: "redF", name: "F 家庭號", desc: "翅腿 16支＋三節翅 15支", price: 300 },
+        ]
+      },
+      {
+        name: "檸檬雞翅腿",
+        icon: "🍋",
+        flavors: ["梅子檸檬", "泰式香茅"],
+        items: [
+          { id: "lemon1", name: "一號餐", desc: "翅腿 11支", price: 100 },
+          { id: "lemon2", name: "二號餐", desc: "翅腿 23支", price: 200 },
+        ]
+      }
+    ]
+  },
+  bbq: {
+    title: "中秋烤肉包預購",
+    hint: "預購取貨制，不含配送。取貨日期／地點將於群組公告。",
+    categories: [
+      {
+        name: "中秋烤肉包",
+        icon: "🥩",
+        items: [
+          { id: "b1", name: "紅麴豆乳雞烤肉包 600g", desc: "約10支翅腿或二節翅，紅麴豆乳雞口味", price: 100 },
+          { id: "b2", name: "檸檬雞烤肉包 600g", desc: "約10支翅腿或二節翅，檸檬雞口味", price: 100 },
+          { id: "b3", name: "花枝丸 20顆", desc: "中秋烤肉必備", price: 180 },
+        ]
+      }
+    ]
+  }
+};
+
+/* ========================================================================= */
+
+let currentMode = "daily";
+const cart = {};              // { "itemId" 或 "itemId|口味": qty }
+const activeFlavorByItem = {}; // { itemId: 目前選取的口味 }
+
+const menuListEl = document.getElementById("menu-list");
+const menuTitleEl = document.getElementById("menu-title");
+const menuHintEl = document.getElementById("menu-hint");
+const pickupTitleEl = document.getElementById("pickup-title");
+const promoBannerEl = document.getElementById("promo-banner");
+
+function currentCategories(){ return MENUS[currentMode].categories; }
+function currentItems(){ return currentCategories().flatMap(c => c.items); }
+function itemKey(itemId, flavor){ return flavor ? `${itemId}|${flavor}` : itemId; }
+
+function renderMenu(){
+  const modeData = MENUS[currentMode];
+  menuTitleEl.textContent = modeData.title;
+  menuHintEl.textContent = modeData.hint;
+  pickupTitleEl.textContent = currentMode === "bbq" ? "取貨資訊（中秋預購）" : "取貨資訊";
+
+  if (modeData.promo) {
+    promoBannerEl.textContent = modeData.promo;
+    promoBannerEl.style.display = "flex";
+  } else {
+    promoBannerEl.style.display = "none";
+  }
+
+  menuListEl.innerHTML = "";
+  modeData.categories.forEach(cat => {
+    const block = document.createElement("div");
+    block.className = "category-block";
+
+    const heading = document.createElement("div");
+    heading.className = "category-title";
+    heading.innerHTML = `<span class="icon">${cat.icon || "🍗"}</span><span>${cat.name}</span>`;
+    block.appendChild(heading);
+
+    cat.items.forEach(item => {
+      const hasFlavors = !!cat.flavors;
+      const activeFlavor = hasFlavors ? (activeFlavorByItem[item.id] || cat.flavors[0]) : null;
+      const key = itemKey(item.id, activeFlavor);
+      const qty = cart[key] || 0;
+
+      const card = document.createElement("div");
+      card.className = "item-card";
+
+      let flavorHtml = "";
+      if (hasFlavors) {
+        flavorHtml = `<div class="flavor-row">` + cat.flavors.map(f => `
+          <button class="flavor-pill ${f === activeFlavor ? "active" : ""}" data-action="flavor" data-item="${item.id}" data-flavor="${f}">${f}</button>
+        `).join("") + `</div>`;
+      }
+
+      card.innerHTML = `
+        <div class="item-top">
+          <div class="item-info">
+            <p class="name">${item.name}</p>
+            <p class="desc">${item.desc}</p>
+            <p class="price">$${item.price}</p>
+          </div>
+        </div>
+        ${flavorHtml}
+        <div class="item-bottom">
+          <div class="stepper">
+            <button data-action="dec" data-item="${item.id}">−</button>
+            <span id="qty-${key.replace('|','--')}">${qty}</span>
+            <button data-action="inc" data-item="${item.id}">＋</button>
+          </div>
+        </div>
+      `;
+      block.appendChild(card);
+    });
+
+    menuListEl.appendChild(block);
+  });
+}
+
+menuListEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const itemId = btn.dataset.item;
+
+  if (action === "flavor") {
+    activeFlavorByItem[itemId] = btn.dataset.flavor;
+    renderMenu();
+    return;
+  }
+
+  // 找出這個品項目前選取的口味（如果有）
+  const cat = currentCategories().find(c => c.items.some(i => i.id === itemId));
+  const flavor = cat && cat.flavors ? (activeFlavorByItem[itemId] || cat.flavors[0]) : null;
+  const key = itemKey(itemId, flavor);
+  const current = cart[key] || 0;
+
+  if (action === "inc") cart[key] = current + 1;
+  if (action === "dec") cart[key] = Math.max(0, current - 1);
+
+  renderMenu();
+  updateCartBar();
+});
+
+function cartEntries(){
+  const items = currentItems();
+  return Object.entries(cart)
+    .filter(([key, qty]) => qty > 0)
+    .map(([key, qty]) => {
+      const [itemId, flavor] = key.split("|");
+      const item = items.find(i => i.id === itemId);
+      return item ? { item, flavor, qty, key } : null;
+    })
+    .filter(Boolean);
+}
+
+function cartTotal(){
+  return cartEntries().reduce((sum, e) => sum + e.item.price * e.qty, 0);
+}
+
+function updateCartBar(){
+  const entries = cartEntries();
+  const bar = document.getElementById("cart-bar");
+  const totalQty = entries.reduce((s, e) => s + e.qty, 0);
+  document.getElementById("cart-count").textContent = `已選 ${totalQty} 項`;
+  document.getElementById("cart-total").textContent = `$${cartTotal()}`;
+  bar.classList.toggle("show", totalQty > 0);
+}
+
+// ---- 模式切換 ----
+document.getElementById("tab-daily").addEventListener("click", () => switchMode("daily"));
+document.getElementById("tab-bbq").addEventListener("click", () => switchMode("bbq"));
+function switchMode(mode){
+  currentMode = mode;
+  document.getElementById("tab-daily").classList.toggle("active", mode === "daily");
+  document.getElementById("tab-bbq").classList.toggle("active", mode === "bbq");
+  renderMenu();
+  updateCartBar();
+}
+
+// ---- 結帳面板 ----
+const sheet = document.getElementById("sheet");
+const overlay = document.getElementById("overlay");
+
+document.getElementById("open-checkout").addEventListener("click", () => {
+  renderSheet();
+  sheet.classList.add("show");
+  overlay.classList.add("show");
+});
+overlay.addEventListener("click", closeSheet);
+function closeSheet(){
+  sheet.classList.remove("show");
+  overlay.classList.remove("show");
+}
+
+function renderSheet(){
+  const entries = cartEntries();
+  const linesEl = document.getElementById("sheet-lines");
+  linesEl.innerHTML = entries.map(e => `
+    <div class="cart-line">
+      <span>${e.item.name}${e.flavor ? `（${e.flavor}）` : ""}<span class="qty">× ${e.qty}</span></span>
+      <span>$${e.item.price * e.qty}</span>
+    </div>
+  `).join("");
+  document.getElementById("sheet-total").textContent = `$${cartTotal()}`;
+}
+
+// ---- 送出訂單 ----
+document.getElementById("submit-order").addEventListener("click", async () => {
+  const entries = cartEntries();
+  const name = document.getElementById("cust-name").value.trim();
+  const phone = document.getElementById("cust-phone").value.trim();
+  const note = document.getElementById("cust-note").value.trim();
+  const pickupDate = document.getElementById("pickup-date").value;
+  const errorEl = document.getElementById("form-error");
+
+  if (entries.length === 0 || !name || !phone || !pickupDate) {
+    errorEl.style.display = "block";
+    return;
+  }
+  errorEl.style.display = "none";
+
+  const submitBtn = document.getElementById("submit-order");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "送出中…";
+
+  const orderId = "O" + Date.now().toString().slice(-8);
+  const itemsSummary = entries.map(e => `${e.item.name}${e.flavor ? `(${e.flavor})` : ""} x${e.qty}`).join("、");
+  const payload = {
+    orderId,
+    mode: currentMode === "bbq" ? "中秋烤肉包" : "現炸菜單",
+    itemsSummary,
+    total: cartTotal(),
+    pickupDate,
+    name,
+    phone,
+    note,
+    submittedAt: new Date().toISOString()
+  };
+
+  try {
+    if (GAS_ENDPOINT && GAS_ENDPOINT.startsWith("http")) {
+      await fetch(GAS_ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(payload)
+      });
+    }
+  } catch (err) {
+    // no-cors 模式看不到實際回應，這裡僅記錄，不中斷流程
+    console.error("送出訂單時發生問題", err);
+  }
+
+  closeSheet();
+  document.getElementById("confirm-order-id").textContent = `訂單編號 ${orderId}`;
+  document.getElementById("confirm-screen").classList.add("show");
+
+  // 清空購物車
+  for (const k in cart) delete cart[k];
+  renderMenu();
+  updateCartBar();
+  document.getElementById("cust-name").value = "";
+  document.getElementById("cust-phone").value = "";
+  document.getElementById("cust-note").value = "";
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = "送出訂單";
+});
+
+document.getElementById("confirm-close").addEventListener("click", () => {
+  document.getElementById("confirm-screen").classList.remove("show");
+});
+
+// ---- 依日期自動顯示取貨地點 ----
+const pickupLocationEl = document.getElementById("pickup-location");
+function updatePickupLocation(){
+  const date = dateInput.value;
+  const loc = SCHEDULE[date];
+  pickupLocationEl.textContent = `取貨地點：${loc || SCHEDULE_FALLBACK}`;
+}
+
+// 預設取貨日期為明天
+const dateInput = document.getElementById("pickup-date");
+const tomorrow = new Date(Date.now() + 86400000);
+dateInput.min = tomorrow.toISOString().slice(0,10);
+dateInput.value = tomorrow.toISOString().slice(0,10);
+dateInput.addEventListener("change", updatePickupLocation);
+
+renderMenu();
+updatePickupLocation();
+</script>
+</body>
+</html>
