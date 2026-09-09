@@ -220,6 +220,17 @@
   .field input.invalid, .field textarea.invalid{
     border-color:var(--red); background:#FBEAE8;
   }
+  .pay-method-row{
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .pay-method-pill{
+    border:1.5px solid var(--line); background:#fff;
+    padding:9px 14px; border-radius:11px; font-size:12.5px;
+    font-weight:700; color:#5a4d43; cursor:pointer; font-family:'Noto Sans TC';
+  }
+  .pay-method-pill.active{
+    background:var(--ink); border-color:var(--ink); color:#fff;
+  }
   .pickup-inline{
     background:var(--paper-2); border-radius:14px; padding:14px 16px 16px;
     margin-top:16px; display:flex; flex-wrap:wrap; gap:12px;
@@ -284,6 +295,9 @@
   }
   .pay-amount span{
     font-family:'Noto Serif TC'; font-weight:900; font-size:20px; color:var(--red-deep);
+  }
+  .pay-method-note{
+    font-size:12px; color:#8a7b6c; line-height:1.6; margin:0 0 12px;
   }
   .pay-btn{
     display:block; width:100%; background:#06C755; color:#fff;
@@ -369,6 +383,14 @@
     <label for="cust-note">備註（同一套餐要不同口味請寫在這裡 / 其他需求）</label>
     <textarea id="cust-note" placeholder="選填"></textarea>
   </div>
+  <div class="field">
+    <label>付款方式</label>
+    <div class="pay-method-row" id="pay-method-row">
+      <button type="button" class="pay-method-pill active" data-value="現場付現">現場付現</button>
+      <button type="button" class="pay-method-pill" data-value="現場LinePay">現場LinePay</button>
+      <button type="button" class="pay-method-pill" data-value="線上LinePay支付">線上LinePay支付</button>
+    </div>
+  </div>
   <div class="error-msg" id="form-error">請確認已選品項、取貨日期與時間、姓名與電話都已填寫。</div>
   <button class="submit-btn" id="submit-order">送出訂單</button>
 </div>
@@ -393,8 +415,8 @@
 
   <div class="pay-box" id="pay-box">
     <p class="pay-amount">應付金額 <span id="pay-amount">$0</span></p>
-    <a id="pay-btn" class="pay-btn" href="#" target="_blank" rel="noopener">用 LINE Pay 付款</a>
-    <p class="pay-hint">點開後請自行輸入上方金額完成付款，我們核對到帳後會準備您的餐點。</p>
+    <p class="pay-method-note" id="pay-method-note"></p>
+    <a id="pay-btn" class="pay-btn" href="#" target="_blank" rel="noopener" style="display:none;">用 LINE Pay 付款</a>
   </div>
 
   <p>取貨時麻煩告知姓名或訂單編號，謝謝您！</p>
@@ -407,23 +429,21 @@
    ========================================================================= */
 
 // Google Apps Script 部署後的 Web App 網址，貼在這裡（見說明文件）
-const GAS_ENDPOINT = "請貼上你的 Google Apps Script 網址";
+const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzr4RXVbPKmlO2AMcZbAdDJzlpV4sVbtcPEeBtqHKrV6NbtcF5eeXnwR9Bkzocch2eLwA/exec";
 
-// 出攤地點表 — 每次確定隔天（或未來）擺攤地點後，在這裡加一行。
-// 日期格式固定 "YYYY-MM-DD"，客人選那天取貨時會自動顯示對應地點。
-// 沒有列在這裡的日期，會顯示「尚未公告」的提示文字。
-const SCHEDULE = {
-  "2026-09-19": "太保市祥和一路西段（嘉義縣政府左前方）－嘉有好聲音市集",
-};
+// 出攤地點表 — 這是「找不到後端資料時」的備用預設值。
+// 正常情況下，出攤地點是在 admin.html 後台管理，會自動從 Google 試算表讀取，
+// 不用改這裡。
+const DEFAULT_SCHEDULE = {};
 const SCHEDULE_FALLBACK = "取貨地點尚未公告，請留意 LINE 群組公告或直接詢問我們";
 
 // LINE Pay 商店收款連結（從你的「顯示商店QR」畫面解出的付款連結）
 // 這是「固定商店QR」，客人點開後要自己在LINE Pay輸入金額，無法自動帶入或自動確認到帳。
 const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/5RuBSmb8ZNmAPFYG7NRgxDAgnDq7qOthSOz1iejLldEOFzL%252F2XIPmqOnk1JT1QpD";
 
-// 菜單設定。price 單位為新台幣。
-// 已依「嘉有好聲音市集限定」宣傳單上的實際套餐與價格更新。
-const MENUS = {
+// 菜單設定 — 這是「找不到後端資料時」的備用預設值（例如 GAS_ENDPOINT 還沒設定）。
+// 正常情況下，菜單是在 admin.html 後台管理，會自動從 Google 試算表讀取，不用改這裡。
+const DEFAULT_MENUS = {
   daily: {
     title: "現炸菜單",
     hint: "各套餐可選口味，選好後加入購物車，於下方查看訂單並送出。",
@@ -472,9 +492,13 @@ const MENUS = {
 
 /* ========================================================================= */
 
+let MENUS = DEFAULT_MENUS;
+let SCHEDULE = { ...DEFAULT_SCHEDULE };
+
 let currentMode = "daily";
 const cart = {};              // { "itemId" 或 "itemId|口味": qty }
 const activeFlavorByItem = {}; // { itemId: [目前選取的口味, ...] }
+let selectedPaymentMethod = "現場付現";
 
 const menuListEl = document.getElementById("menu-list");
 const menuTitleEl = document.getElementById("menu-title");
@@ -668,6 +692,16 @@ function renderSheet(){
   document.getElementById("sheet-total").textContent = `$${cartTotal()}`;
 }
 
+// ---- 付款方式 ----
+document.getElementById("pay-method-row").addEventListener("click", (e) => {
+  const btn = e.target.closest(".pay-method-pill");
+  if (!btn) return;
+  selectedPaymentMethod = btn.dataset.value;
+  document.querySelectorAll(".pay-method-pill").forEach(el => {
+    el.classList.toggle("active", el === btn);
+  });
+});
+
 // ---- 送出訂單 ----
 document.getElementById("submit-order").addEventListener("click", async () => {
   const entries = cartEntries();
@@ -718,6 +752,7 @@ document.getElementById("submit-order").addEventListener("click", async () => {
     name,
     phone,
     note,
+    paymentMethod: selectedPaymentMethod,
     submittedAt: new Date().toISOString()
   };
 
@@ -739,13 +774,20 @@ document.getElementById("submit-order").addEventListener("click", async () => {
   document.getElementById("confirm-order-id").textContent = `訂單編號 ${orderId}`;
   document.getElementById("pay-amount").textContent = `$${payload.total}`;
   const payBtn = document.getElementById("pay-btn");
-  const payBox = document.getElementById("pay-box");
-  if (LINE_PAY_LINK && LINE_PAY_LINK.startsWith("http")) {
+  const payNoteEl = document.getElementById("pay-method-note");
+
+  if (selectedPaymentMethod === "線上LinePay支付" && LINE_PAY_LINK && LINE_PAY_LINK.startsWith("http")) {
     payBtn.href = LINE_PAY_LINK;
-    payBox.style.display = "block";
+    payBtn.style.display = "block";
+    payNoteEl.textContent = "請點下方按鈕開啟LINE Pay，自行輸入上方金額完成付款，我們核對到帳後會準備您的餐點。";
+  } else if (selectedPaymentMethod === "現場LinePay") {
+    payBtn.style.display = "none";
+    payNoteEl.textContent = "取貨時請出示我們的LINE Pay收款QR碼付款。";
   } else {
-    payBox.style.display = "none";
+    payBtn.style.display = "none";
+    payNoteEl.textContent = "取貨時請準備現金付款，謝謝您！";
   }
+
   document.getElementById("confirm-screen").classList.add("show");
 
   // 清空購物車
@@ -755,6 +797,10 @@ document.getElementById("submit-order").addEventListener("click", async () => {
   document.getElementById("cust-name").value = "";
   document.getElementById("cust-phone").value = "";
   document.getElementById("cust-note").value = "";
+  selectedPaymentMethod = "現場付現";
+  document.querySelectorAll(".pay-method-pill").forEach(el => {
+    el.classList.toggle("active", el.dataset.value === selectedPaymentMethod);
+  });
 
   submitBtn.disabled = false;
   submitBtn.textContent = "送出訂單";
@@ -829,8 +875,80 @@ dateInput.min = tomorrow.toISOString().slice(0,10);
 dateInput.value = tomorrow.toISOString().slice(0,10);
 dateInput.addEventListener("change", updatePickupLocation);
 
-renderMenu();
-updatePickupLocation();
+// ---- 從後台（Google 試算表）讀取菜單與出攤地點 ----
+function buildMenusFromRows(rows){
+  const modes = {};
+  rows
+    .filter(r => String(r["啟用"]).toUpperCase() !== "FALSE")
+    .forEach(r => {
+      const modeKey = r["模式"] === "bbq" ? "bbq" : "daily";
+      if (!modes[modeKey]) modes[modeKey] = { categories: [] };
+      let cat = modes[modeKey].categories.find(c => c.name === r["分類"]);
+      if (!cat) {
+        const flavorList = String(r["口味清單"] || "").split(",").map(s => s.trim()).filter(Boolean);
+        cat = {
+          name: r["分類"],
+          icon: r["圖示"] || "🍗",
+          flavors: flavorList.length ? flavorList : undefined,
+          flavorMulti: String(r["口味複選"]).toUpperCase() === "TRUE",
+          items: []
+        };
+        modes[modeKey].categories.push(cat);
+      }
+      cat.items.push({
+        id: r["品項ID"],
+        name: r["品項名稱"],
+        desc: r["說明"],
+        price: Number(r["價格"]) || 0
+      });
+    });
+
+  const result = {};
+  ["daily", "bbq"].forEach(key => {
+    if (modes[key] && modes[key].categories.length) {
+      result[key] = {
+        title: DEFAULT_MENUS[key].title,
+        hint: DEFAULT_MENUS[key].hint,
+        promo: DEFAULT_MENUS[key].promo,
+        categories: modes[key].categories
+      };
+    } else {
+      result[key] = DEFAULT_MENUS[key];
+    }
+  });
+  return result;
+}
+
+function buildScheduleFromRows(rows){
+  const map = {};
+  rows.forEach(r => {
+    if (r["日期"]) map[r["日期"]] = r["地點"];
+  });
+  return map;
+}
+
+async function loadConfig(){
+  if (!GAS_ENDPOINT || !GAS_ENDPOINT.startsWith("http")) return;
+  try {
+    const res = await fetch(`${GAS_ENDPOINT}?action=config`);
+    const data = await res.json();
+    if (data.ok) {
+      if (data.menu && data.menu.length) MENUS = buildMenusFromRows(data.menu);
+      if (data.schedule) SCHEDULE = buildScheduleFromRows(data.schedule);
+    }
+  } catch (err) {
+    // 讀取失敗就沿用檔案內建的預設菜單／地點，不擋住客人下單
+    console.error("讀取後台設定失敗，使用預設菜單", err);
+  }
+}
+
+async function init(){
+  menuHintEl.textContent = "菜單載入中…";
+  await loadConfig();
+  renderMenu();
+  updatePickupLocation();
+}
+init();
 </script>
 </body>
 </html>
